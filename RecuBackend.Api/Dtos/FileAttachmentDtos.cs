@@ -6,13 +6,5 @@ public sealed record FileAttachmentResponse(
     string FileName,
     string ContentType,
     long SizeBytes,
-    string StoragePath,
     bool IsImage,
     DateTime UploadedAtUtc);
-
-public sealed record CreateFileAttachmentRequest(
-    string FileName,
-    string ContentType,
-    long SizeBytes,
-    string StoragePath,
-    bool IsImage);

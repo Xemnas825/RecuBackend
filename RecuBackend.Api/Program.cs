@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -64,6 +65,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connStr);
 });
 
+builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection(FileStorageSettings.SectionName));
+builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+
 builder.Services.AddScoped<IUserContext, UserContextAccessor>();
 builder.Services.AddSingleton<DiceRollerService>();
 builder.Services.AddSingleton<TokenService>();
@@ -84,6 +88,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
     await DbSeeder.SeedAsync(db);
+
+    var storage = scope.ServiceProvider.GetRequiredService<IOptions<FileStorageSettings>>().Value;
+    Directory.CreateDirectory(storage.RootPath);
 }
 
 app.MapControllers();

@@ -83,7 +83,10 @@ En Swagger: botón **Authorize** → `Bearer {token}`.
 | GET/POST/PUT/DELETE | `/api/campaigns` | User/Admin | CRUD de campañas propias |
 | GET/POST/PUT/DELETE | `/api/campaigns/{id}/characters` | User/Admin | CRUD de personajes/NPC |
 | GET/POST | `/api/characters/{id}/rolls` | User/Admin | Historial y tirada de dados |
-| GET/POST/DELETE | `/api/characters/{id}/attachments` | User/Admin | Metadatos de fichas |
+| POST | `/api/characters/{id}/attachments` | User/Admin | Subir ficha (multipart, campo `file`) |
+| GET | `/api/characters/{id}/attachments` | User/Admin | Listar fichas del personaje |
+| GET | `/api/attachments/{id}` | User/Admin | Descargar ficha |
+| DELETE | `/api/characters/{id}/attachments/{attachmentId}` | User/Admin | Borrar ficha |
 | GET | `/api/admin/campaigns` | Admin | Todas las campañas |
 | GET | `/api/admin/users` | Admin | Listado de usuarios |
 
@@ -100,6 +103,13 @@ Content-Type: application/json
 }
 ```
 `d20Mode`: `0` Normal, `1` Ventaja, `2` Desventaja.
+
+### Subir ficha de personaje (imagen o PDF)
+En Swagger: `POST /api/characters/{characterId}/attachments` → **Try it out** → campo `file`.
+
+Formatos permitidos: `.jpg`, `.jpeg`, `.png`, `.webp`, `.pdf` (máx. 10 MB).
+
+Los archivos se guardan en volumen Docker (`/app/uploads`) y persisten al reiniciar contenedores.
 
 ## Estructura del proyecto
 
