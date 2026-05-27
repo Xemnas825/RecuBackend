@@ -1,0 +1,168 @@
+{
+  "info": {
+    "name": "RecuBackend DnD API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:2922" },
+    { "key": "token", "value": "" },
+    { "key": "campaignId", "value": "" },
+    { "key": "characterId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"julio\",\n  \"password\": \"Test123!\",\n  \"displayName\": \"Julio\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('token', j.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"player\",\n  \"password\": \"Player123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaigns",
+      "item": [
+        {
+          "name": "List campaigns (filter/sort)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns?search=&sortBy=name&sortDir=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "sortBy", "value": "name" },
+                { "key": "sortDir", "value": "asc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.collectionVariables.set('campaignId', pm.response.json().id);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Campaña 1\",\n  \"setting\": \"Forgotten Realms\",\n  \"description\": \"Demo\",\n  \"isPublic\": true,\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/campaigns"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Characters",
+      "item": [
+        {
+          "name": "Create character",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.collectionVariables.set('characterId', pm.response.json().id);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Atlas\",\n  \"race\": \"Goliat\",\n  \"characterClass\": \"Caballero Rúnico\",\n  \"level\": 5,\n  \"armorClass\": 17,\n  \"hitPoints\": 65,\n  \"proficiencyBonus\": 3,\n  \"strength\": 18,\n  \"dexterity\": 15,\n  \"isNpc\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/campaigns/{{campaignId}}/characters"
+          }
+        },
+        {
+          "name": "Roll dice",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Percepción\",\n  \"diceExpression\": \"1d20+3\",\n  \"d20Mode\": 0\n}"
+            },
+            "url": "{{baseUrl}}/api/characters/{{characterId}}/rolls"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Public campaigns",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/public/campaigns?sortBy=name"
+          }
+        },
+        {
+          "name": "D&D spell lookup",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/public/dnd/spells?name=fireball"
+          }
+        },
+        {
+          "name": "D&D monster lookup",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/public/dnd/monsters?name=goblin"
+          }
+        }
+      ]
+    }
+  ]
+}

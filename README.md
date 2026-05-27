@@ -17,7 +17,10 @@ cp .env.example .env
 docker compose --env-file .env up --build -d
 ```
 
-La API estará disponible en `http://localhost:<API_PORT>` y Swagger en `http://localhost:<API_PORT>/swagger`.
+La API estará disponible en `http://localhost:<API_PORT>/swagger` y la **web** en `http://localhost:<WEB_PORT>` (por defecto 3000).
+
+Colección Postman: `postman/RecuBackend.postman_collection.json`  
+Documentación de entrega: `ENTREGA.md`
 
 ### Variables de entorno (`.env`)
 
@@ -29,6 +32,7 @@ La API estará disponible en `http://localhost:<API_PORT>` y Swagger en `http://
 | `POSTGRES_USER`   | Usuario de PostgreSQL                         | `postgres`    |
 | `POSTGRES_PASSWORD` | Contraseña de PostgreSQL                    | `postgres`    |
 | `JWT_SECRET`        | Clave secreta para firmar tokens JWT          | (mín. 32 chars) |
+| `WEB_PORT`          | Puerto del front web                          | `3000`   |
 
 ## Desarrollo local (sin Docker)
 
@@ -79,7 +83,9 @@ En Swagger: botón **Authorize** → `Bearer {token}`.
 |--------|------|------|-------------|
 | POST | `/api/auth/register` | No | Registrar usuario y obtener JWT |
 | POST | `/api/auth/login` | No | Obtener JWT |
-| GET | `/api/public/campaigns` | No | Campañas públicas |
+| GET | `/api/public/campaigns` | No | Campañas públicas (filtros: search, setting; orden: name, updatedAt…) |
+| GET | `/api/public/dnd/spells?name=` | No | Hechizo desde dnd5eapi.co |
+| GET | `/api/public/dnd/monsters?name=` | No | Monstruo desde dnd5eapi.co |
 | GET/POST/PUT/DELETE | `/api/campaigns` | User/Admin | CRUD de campañas propias |
 | GET/POST/PUT/DELETE | `/api/campaigns/{id}/characters` | User/Admin | CRUD de personajes/NPC |
 | GET/POST | `/api/characters/{id}/rolls` | User/Admin | Historial y tirada de dados |

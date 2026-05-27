@@ -34,6 +34,18 @@ services:
       db:
         condition: service_healthy
 
+  web:
+    build:
+      context: ./RecuFrontend
+      dockerfile: Dockerfile
+    container_name: recubackend-web
+    environment:
+      API_BASE_URL: http://localhost:${API_PORT:-8080}
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      - api
+
 volumes:
   recubackend_db:
   recubackend_uploads:

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RecuBackend – DnD Companion</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🎲 DnD Campaign Companion</h1>
+    <p id="user-info"></p>
+    <button id="btn-logout" class="hidden">Cerrar sesión</button>
+  </header>
+
+  <main>
+    <section id="auth-section">
+      <h2>Acceso</h2>
+      <div class="tabs">
+        <button type="button" data-tab="login" class="active">Login</button>
+        <button type="button" data-tab="register">Registro</button>
+      </div>
+      <form id="login-form">
+        <input name="username" placeholder="Usuario" required />
+        <input name="password" type="password" placeholder="Contraseña" required />
+        <button type="submit">Entrar</button>
+      </form>
+      <form id="register-form" class="hidden">
+        <input name="username" placeholder="Usuario" required />
+        <input name="displayName" placeholder="Nombre visible" required />
+        <input name="password" type="password" placeholder="Contraseña" required />
+        <button type="submit">Registrarse</button>
+      </form>
+      <p id="auth-error" class="error"></p>
+    </section>
+
+    <section id="app-section" class="hidden">
+      <div class="panel">
+        <h2>Mis campañas</h2>
+        <form id="campaign-form" class="inline-form">
+          <input name="name" placeholder="Nombre" required />
+          <input name="setting" placeholder="Ambientación" required />
+          <label><input type="checkbox" name="isPublic" /> Pública</label>
+          <button type="submit">Crear</button>
+        </form>
+        <ul id="campaign-list"></ul>
+      </div>
+
+      <div id="campaign-detail" class="panel hidden">
+        <h2>Personajes – <span id="campaign-title"></span></h2>
+        <button type="button" id="btn-back-campaigns">← Campañas</button>
+        <form id="character-form" class="grid-form">
+          <input name="name" placeholder="Nombre" required />
+          <input name="race" placeholder="Raza" required />
+          <input name="characterClass" placeholder="Clase" required />
+          <input name="level" type="number" value="1" min="1" />
+          <label><input type="checkbox" name="isNpc" /> Es NPC</label>
+          <button type="submit">Añadir personaje</button>
+        </form>
+        <ul id="character-list"></ul>
+      </div>
+
+      <div id="character-detail" class="panel hidden">
+        <h2>Ficha – <span id="character-title"></span></h2>
+        <button type="button" id="btn-back-characters">← Personajes</button>
+        <div class="roll-box">
+          <label>Tirada rápida</label>
+          <input id="dice-expression" value="1d20+3" />
+          <select id="d20-mode">
+            <option value="0">Normal</option>
+            <option value="1">Ventaja</option>
+            <option value="2">Desventaja</option>
+          </select>
+          <button type="button" id="btn-roll">Tirar dados</button>
+          <p id="roll-result"></p>
+        </div>
+        <div>
+          <h3>Consultar D&D 5e API</h3>
+          <input id="spell-name" placeholder="Hechizo (ej. fireball)" />
+          <button type="button" id="btn-spell">Buscar hechizo</button>
+          <pre id="spell-result"></pre>
+        </div>
+        <div>
+          <h3>Subir ficha (imagen/PDF)</h3>
+          <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+          <button type="button" id="btn-upload">Subir</button>
+          <ul id="attachment-list"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
