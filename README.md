@@ -36,6 +36,38 @@ La API estará disponible en `http://localhost:<API_PORT>` y Swagger en `http://
 dotnet run --project RecuBackend.Api
 ```
 
+## API (rama `feat/models-crud`)
+
+### Autenticación temporal
+Hasta implementar JWT, envía la cabecera:
+```
+X-User-Id: 00000000-0000-0000-0000-000000000001
+```
+
+### Endpoints principales
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/public/campaigns` | Campañas públicas (sin auth) |
+| GET/POST/PUT/DELETE | `/api/campaigns` | CRUD de campañas del usuario |
+| GET/POST/PUT/DELETE | `/api/campaigns/{id}/characters` | CRUD de personajes/NPC |
+| GET/POST | `/api/characters/{id}/rolls` | Historial y tirada de dados (`1d20+5`, ventaja/desventaja) |
+| GET/POST/DELETE | `/api/characters/{id}/attachments` | Metadatos de fichas (subida real en rama posterior) |
+
+### Ejemplo de tirada
+```http
+POST /api/characters/{characterId}/rolls
+X-User-Id: {tu-guid}
+Content-Type: application/json
+
+{
+  "label": "Percepción",
+  "diceExpression": "1d20+3",
+  "d20Mode": 1
+}
+```
+`d20Mode`: `0` Normal, `1` Ventaja, `2` Desventaja.
+
 ## Estructura del proyecto
 
 ```
