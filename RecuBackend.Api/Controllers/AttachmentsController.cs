@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RecuBackend.Api.Auth;
 using Microsoft.EntityFrameworkCore;
 using RecuBackend.Api.Data;
 using RecuBackend.Api.Dtos;
@@ -7,6 +9,7 @@ using RecuBackend.Api.Services;
 
 namespace RecuBackend.Api.Controllers;
 
+[Authorize(Roles = AppRoles.Authenticated)]
 [Route("api/characters/{characterId:guid}/attachments")]
 public sealed class AttachmentsController(AppDbContext db, IUserContext userContext) : ApiControllerBase
 {

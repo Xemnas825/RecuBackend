@@ -9,6 +9,7 @@ public sealed class AppDbContext : DbContext
     {
     }
 
+    public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<Campaign> Campaigns => Set<Campaign>();
     public DbSet<Character> Characters => Set<Character>();
     public DbSet<RollLog> RollLogs => Set<RollLog>();
@@ -17,6 +18,16 @@ public sealed class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AppUser>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Username).IsUnique();
+            e.Property(x => x.Username).HasMaxLength(60);
+            e.Property(x => x.DisplayName).HasMaxLength(120);
+            e.Property(x => x.PasswordHash).HasMaxLength(200);
+            e.Property(x => x.Role).HasMaxLength(20);
+        });
 
         modelBuilder.Entity<Campaign>(e =>
         {

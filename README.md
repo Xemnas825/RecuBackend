@@ -28,6 +28,7 @@ La API estará disponible en `http://localhost:<API_PORT>` y Swagger en `http://
 | `POSTGRES_DB`     | Nombre de la base de datos                    | `recubackend` |
 | `POSTGRES_USER`   | Usuario de PostgreSQL                         | `postgres`    |
 | `POSTGRES_PASSWORD` | Contraseña de PostgreSQL                    | `postgres`    |
+| `JWT_SECRET`        | Clave secreta para firmar tokens JWT          | (mín. 32 chars) |
 
 ## Desarrollo local (sin Docker)
 
@@ -36,28 +37,60 @@ La API estará disponible en `http://localhost:<API_PORT>` y Swagger en `http://
 dotnet run --project RecuBackend.Api
 ```
 
-## API (rama `feat/models-crud`)
+## Autenticación JWT
 
-### Autenticación temporal
-Hasta implementar JWT, envía la cabecera:
+### Registro
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{ "username": "julio", "password": "Test123!", "displayName": "Julio" }
 ```
-X-User-Id: 00000000-0000-0000-0000-000000000001
+
+Crea un usuario con rol **User** y devuelve el JWT (igual que el login).
+
+### Login
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{ "username": "player", "password": "Player123!" }
 ```
 
-### Endpoints principales
+Respuesta: `accessToken`, `userId`, `username`, `role`, `expiresAtUtc`.
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/public/campaigns` | Campañas públicas (sin auth) |
-| GET/POST/PUT/DELETE | `/api/campaigns` | CRUD de campañas del usuario |
-| GET/POST/PUT/DELETE | `/api/campaigns/{id}/characters` | CRUD de personajes/NPC |
-| GET/POST | `/api/characters/{id}/rolls` | Historial y tirada de dados (`1d20+5`, ventaja/desventaja) |
-| GET/POST/DELETE | `/api/characters/{id}/attachments` | Metadatos de fichas (subida real en rama posterior) |
+Usuarios de demo (seed automático):
+
+| Usuario | Contraseña | Rol   | UserId |
+|---------|------------|-------|--------|
+| `admin` | `Admin123!` | Admin | `11111111-1111-1111-1111-111111111111` |
+| `player` | `Player123!` | User | `22222222-2222-2222-2222-222222222222` |
+
+En Swagger: botón **Authorize** → `Bearer {token}`.
+
+### Roles
+- **Guest** (sin token): solo endpoints `/api/public/*`
+- **User**: CRUD de sus campañas, personajes, tiradas y adjuntos
+- **Admin**: lo anterior + `/api/admin/campaigns` y `/api/admin/users`
+
+## Endpoints principales
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | `/api/auth/register` | No | Registrar usuario y obtener JWT |
+| POST | `/api/auth/login` | No | Obtener JWT |
+| GET | `/api/public/campaigns` | No | Campañas públicas |
+| GET/POST/PUT/DELETE | `/api/campaigns` | User/Admin | CRUD de campañas propias |
+| GET/POST/PUT/DELETE | `/api/campaigns/{id}/characters` | User/Admin | CRUD de personajes/NPC |
+| GET/POST | `/api/characters/{id}/rolls` | User/Admin | Historial y tirada de dados |
+| GET/POST/DELETE | `/api/characters/{id}/attachments` | User/Admin | Metadatos de fichas |
+| GET | `/api/admin/campaigns` | Admin | Todas las campañas |
+| GET | `/api/admin/users` | Admin | Listado de usuarios |
 
 ### Ejemplo de tirada
 ```http
 POST /api/characters/{characterId}/rolls
-X-User-Id: {tu-guid}
+Authorization: Bearer {token}
 Content-Type: application/json
 
 {

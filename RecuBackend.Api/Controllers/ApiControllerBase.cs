@@ -13,10 +13,7 @@ public abstract class ApiControllerBase : ControllerBase
 
         if (!userContext.IsAuthenticated || userContext.UserId is null)
         {
-            error = Unauthorized(new
-            {
-                message = $"Envía la cabecera {UserContextMiddleware.UserIdHeader} con un GUID (temporal hasta JWT)."
-            });
+            error = Unauthorized(new { message = "Token JWT requerido. Usa POST /api/auth/login." });
             return false;
         }
 
