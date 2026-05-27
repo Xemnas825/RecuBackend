@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using RecuBackend.Api.Data;
 using RecuBackend.Api.Dtos;
 using RecuBackend.Api.Models;
+using RecuBackend.Api.Queries;
 using RecuBackend.Api.Services;
 
 namespace RecuBackend.Api.Controllers;
@@ -13,15 +14,27 @@ namespace RecuBackend.Api.Controllers;
 [Route("api/campaigns")]
 public sealed class CampaignsController(AppDbContext db, IUserContext userContext) : ApiControllerBase
 {
+    /// <summary>
+    /// Filtros: search (name/setting/description), setting, isActive, isPublic.
+    /// Orden: sortBy=name|setting|createdAt|updatedAt, sortDir=asc|desc.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CampaignResponse>>> GetAll(CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<CampaignResponse>>> GetAll(
+        [FromQuery] string? search,
+        [FromQuery] string? setting,
+        [FromQuery] bool? isActive,
+        [FromQuery] bool? isPublic,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortDir,
+        CancellationToken ct)
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
         var campaigns = await db.Campaigns
             .AsNoTracking()
             .Where(c => c.OwnerUserId == ownerId)
-            .OrderByDescending(c => c.UpdatedAtUtc)
+            .ApplyCampaignFilters(search, setting, isActive, isPublic)
+            .ApplyCampaignSort(sortBy, sortDir)
             .ToListAsync(ct);
 
         return Ok(campaigns.Select(ToResponse));

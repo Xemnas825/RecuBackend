@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using RecuBackend.Api.Data;
 using RecuBackend.Api.Dtos;
 using RecuBackend.Api.Models;
+using RecuBackend.Api.Queries;
 using RecuBackend.Api.Services;
 
 namespace RecuBackend.Api.Controllers;
@@ -13,8 +14,20 @@ namespace RecuBackend.Api.Controllers;
 [Route("api/campaigns/{campaignId:guid}/characters")]
 public sealed class CharactersController(AppDbContext db, IUserContext userContext) : ApiControllerBase
 {
+    /// <summary>
+    /// Filtros: name, race, characterClass, isNpc.
+    /// Orden: sortBy=name|level|race|class, sortDir=asc|desc.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CharacterResponse>>> GetAll(Guid campaignId, CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<CharacterResponse>>> GetAll(
+        Guid campaignId,
+        [FromQuery] string? name,
+        [FromQuery] string? race,
+        [FromQuery] string? characterClass,
+        [FromQuery] bool? isNpc,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortDir,
+        CancellationToken ct)
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
         if (!await OwnsCampaign(campaignId, ownerId, ct)) return NotFound();
@@ -22,7 +35,8 @@ public sealed class CharactersController(AppDbContext db, IUserContext userConte
         var characters = await db.Characters
             .AsNoTracking()
             .Where(ch => ch.CampaignId == campaignId && ch.OwnerUserId == ownerId)
-            .OrderBy(ch => ch.Name)
+            .ApplyCharacterFilters(name, race, characterClass, isNpc)
+            .ApplyCharacterSort(sortBy, sortDir)
             .ToListAsync(ct);
 
         return Ok(characters.Select(ToResponse));
