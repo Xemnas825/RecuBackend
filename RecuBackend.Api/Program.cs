@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using RecuBackend.Api.Auth;
 using RecuBackend.Api.Data;
 using RecuBackend.Api.Services;
+using RecuBackend.Api.Services.Dnd5e;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +68,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection(FileStorageSettings.SectionName));
 builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+
+builder.Services.Configure<Dnd5eApiSettings>(builder.Configuration.GetSection(Dnd5eApiSettings.SectionName));
+builder.Services.AddHttpClient<IDnd5eApiClient, Dnd5eApiClient>((sp, client) =>
+{
+    var settings = sp.GetRequiredService<IOptions<Dnd5eApiSettings>>().Value;
+    client.BaseAddress = new Uri(settings.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(20);
+});
 
 builder.Services.AddScoped<IUserContext, UserContextAccessor>();
 builder.Services.AddSingleton<DiceRollerService>();
