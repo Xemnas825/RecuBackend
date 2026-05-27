@@ -4,7 +4,7 @@ using RecuBackend.Api.Dtos;
 
 namespace RecuBackend.Api.Services.Dnd5e;
 
-public sealed class Dnd5eApiClient(HttpClient http, IOptions<Dnd5eApiSettings> options) : IDnd5eApiClient
+public sealed class Dnd5eApiClient(HttpClient http) : IDnd5eApiClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
