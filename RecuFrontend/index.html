@@ -7,89 +7,225 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <h1>🎲 DnD Campaign Companion</h1>
-    <p id="user-info"></p>
-    <button id="btn-logout" class="hidden">Cerrar sesión</button>
+  <header class="topbar">
+    <div class="topbar__left">
+      <div class="brand">
+        <div class="brand__title">DnD Companion</div>
+        <div class="brand__subtitle">Campañas · Personajes · Tiradas</div>
+      </div>
+    </div>
+    <div class="topbar__right">
+      <div id="user-info" class="user-badge"></div>
+      <button id="btn-logout" class="btn btn--ghost hidden" type="button">Cerrar sesión</button>
+    </div>
   </header>
 
-  <main>
-    <section id="auth-section">
-      <h2>Acceso</h2>
-      <div class="tabs">
-        <button type="button" data-tab="login" class="active">Login</button>
-        <button type="button" data-tab="register">Registro</button>
+  <main class="page">
+    <section id="auth-section" class="auth">
+      <div class="card auth__card">
+        <h2 class="card__title">Acceso</h2>
+        <p class="card__subtitle">Inicia sesión o crea un usuario para guardar tus campañas.</p>
+
+        <div class="tabs" role="tablist" aria-label="Acceso">
+          <button type="button" data-tab="login" class="tab active" role="tab" aria-selected="true">Login</button>
+          <button type="button" data-tab="register" class="tab" role="tab" aria-selected="false">Registro</button>
+        </div>
+
+        <form id="login-form" class="form">
+          <label class="field">
+            <span class="field__label">Usuario</span>
+            <input name="username" autocomplete="username" placeholder="ej. player" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Contraseña</span>
+            <input name="password" autocomplete="current-password" type="password" placeholder="••••••••" required />
+          </label>
+          <button class="btn btn--primary" type="submit">Entrar</button>
+        </form>
+
+        <form id="register-form" class="form hidden">
+          <label class="field">
+            <span class="field__label">Usuario</span>
+            <input name="username" autocomplete="username" placeholder="ej. nuevo_usuario" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Nombre visible</span>
+            <input name="displayName" autocomplete="name" placeholder="ej. Julio" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Contraseña</span>
+            <input name="password" autocomplete="new-password" type="password" placeholder="mínimo 6 caracteres" required />
+          </label>
+          <button class="btn btn--primary" type="submit">Registrarse</button>
+        </form>
+
+        <p id="auth-error" class="notice notice--error hidden" role="alert"></p>
+        <p class="muted">Consejo: si estás en Docker, revisa que la API esté levantada y accesible.</p>
       </div>
-      <form id="login-form">
-        <input name="username" placeholder="Usuario" required />
-        <input name="password" type="password" placeholder="Contraseña" required />
-        <button type="submit">Entrar</button>
-      </form>
-      <form id="register-form" class="hidden">
-        <input name="username" placeholder="Usuario" required />
-        <input name="displayName" placeholder="Nombre visible" required />
-        <input name="password" type="password" placeholder="Contraseña" required />
-        <button type="submit">Registrarse</button>
-      </form>
-      <p id="auth-error" class="error"></p>
     </section>
 
     <section id="app-section" class="hidden">
-      <div class="panel">
-        <h2>Mis campañas</h2>
-        <form id="campaign-form" class="inline-form">
-          <input name="name" placeholder="Nombre" required />
-          <input name="setting" placeholder="Ambientación" required />
-          <label><input type="checkbox" name="isPublic" /> Pública</label>
-          <button type="submit">Crear</button>
-        </form>
-        <ul id="campaign-list"></ul>
-      </div>
+      <div class="app">
+        <aside class="sidebar">
+          <div class="sidebar__section">
+            <div class="sidebar__title">Campañas</div>
+            <form id="campaign-form" class="form form--compact">
+              <div class="row">
+                <label class="field">
+                  <span class="field__label">Nombre</span>
+                  <input name="name" placeholder="ej. La Mina Perdida" required />
+                </label>
+                <label class="field">
+                  <span class="field__label">Ambientación</span>
+                  <input name="setting" placeholder="ej. Forgotten Realms" required />
+                </label>
+              </div>
+              <label class="checkbox">
+                <input type="checkbox" name="isPublic" />
+                <span>Pública</span>
+              </label>
+              <button class="btn btn--primary" type="submit">Crear campaña</button>
+              <div id="campaigns-loading" class="spinner hidden" aria-hidden="true"></div>
+              <p id="campaigns-error" class="notice notice--error hidden" role="alert"></p>
+            </form>
+          </div>
+          <div class="sidebar__section">
+            <ul id="campaign-list" class="list"></ul>
+          </div>
+        </aside>
 
-      <div id="campaign-detail" class="panel hidden">
-        <h2>Personajes – <span id="campaign-title"></span></h2>
-        <button type="button" id="btn-back-campaigns">← Campañas</button>
-        <form id="character-form" class="grid-form">
-          <input name="name" placeholder="Nombre" required />
-          <input name="race" placeholder="Raza" required />
-          <input name="characterClass" placeholder="Clase" required />
-          <input name="level" type="number" value="1" min="1" />
-          <label><input type="checkbox" name="isNpc" /> Es NPC</label>
-          <button type="submit">Añadir personaje</button>
-        </form>
-        <ul id="character-list"></ul>
-      </div>
+        <section class="content">
+          <div id="campaign-detail" class="card hidden">
+            <div class="card__header">
+              <div>
+                <h2 class="card__title">Personajes</h2>
+                <p class="card__subtitle">Campaña: <strong id="campaign-title"></strong></p>
+              </div>
+              <button type="button" id="btn-back-campaigns" class="btn btn--ghost">Volver</button>
+            </div>
 
-      <div id="character-detail" class="panel hidden">
-        <h2>Ficha – <span id="character-title"></span></h2>
-        <button type="button" id="btn-back-characters">← Personajes</button>
-        <div class="roll-box">
-          <label>Tirada rápida</label>
-          <input id="dice-expression" value="1d20+3" />
-          <select id="d20-mode">
-            <option value="0">Normal</option>
-            <option value="1">Ventaja</option>
-            <option value="2">Desventaja</option>
-          </select>
-          <button type="button" id="btn-roll">Tirar dados</button>
-          <p id="roll-result"></p>
-        </div>
-        <div>
-          <h3>Consultar D&D 5e API</h3>
-          <input id="spell-name" placeholder="Hechizo (ej. fireball)" />
-          <button type="button" id="btn-spell">Buscar hechizo</button>
-          <pre id="spell-result"></pre>
-        </div>
-        <div>
-          <h3>Subir ficha (imagen/PDF)</h3>
-          <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" />
-          <button type="button" id="btn-upload">Subir</button>
-          <ul id="attachment-list"></ul>
-        </div>
+            <form id="character-form" class="form">
+              <div class="row">
+                <label class="field">
+                  <span class="field__label">Nombre</span>
+                  <input name="name" placeholder="ej. Thia" required />
+                </label>
+                <label class="field">
+                  <span class="field__label">Raza</span>
+                  <input name="race" placeholder="ej. Elfo" required />
+                </label>
+                <label class="field">
+                  <span class="field__label">Clase</span>
+                  <input name="characterClass" placeholder="ej. Mago" required />
+                </label>
+              </div>
+
+              <div class="row row--stats">
+                <label class="field field--mini">
+                  <span class="field__label">Nivel</span>
+                  <input name="level" type="number" value="1" min="1" />
+                </label>
+                <label class="field field--mini">
+                  <span class="field__label">CA</span>
+                  <input name="armorClass" type="number" value="10" min="0" />
+                </label>
+                <label class="field field--mini">
+                  <span class="field__label">PG</span>
+                  <input name="hitPoints" type="number" value="10" min="0" />
+                </label>
+                <label class="field field--mini">
+                  <span class="field__label">Comp.</span>
+                  <input name="proficiencyBonus" type="number" value="2" min="0" />
+                </label>
+              </div>
+
+              <div class="row row--stats">
+                <label class="field field--mini"><span class="field__label">FUE</span><input name="strength" type="number" value="10" min="1" max="30" /></label>
+                <label class="field field--mini"><span class="field__label">DES</span><input name="dexterity" type="number" value="10" min="1" max="30" /></label>
+                <label class="field field--mini"><span class="field__label">CON</span><input name="constitution" type="number" value="10" min="1" max="30" /></label>
+                <label class="field field--mini"><span class="field__label">INT</span><input name="intelligence" type="number" value="10" min="1" max="30" /></label>
+                <label class="field field--mini"><span class="field__label">SAB</span><input name="wisdom" type="number" value="10" min="1" max="30" /></label>
+                <label class="field field--mini"><span class="field__label">CAR</span><input name="charisma" type="number" value="10" min="1" max="30" /></label>
+              </div>
+
+              <div class="row row--stats">
+                <label class="field field--mini"><span class="field__label">Inic.</span><input name="initiative" type="number" value="0" min="-10" max="20" /></label>
+                <label class="field field--mini"><span class="field__label">Vel. (ft)</span><input name="speedFeet" type="number" value="30" min="0" max="120" /></label>
+                <label class="field field--mini"><span class="field__label">Tamaño</span><input name="size" value="Medium" /></label>
+                <label class="checkbox checkbox--right">
+                  <input type="checkbox" name="isNpc" />
+                  <span>NPC</span>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn--primary">Añadir personaje</button>
+              <div id="characters-loading" class="spinner hidden" aria-hidden="true"></div>
+              <p id="characters-error" class="notice notice--error hidden" role="alert"></p>
+            </form>
+
+            <ul id="character-list" class="list"></ul>
+          </div>
+
+          <div id="character-detail" class="card hidden">
+            <div class="card__header">
+              <div>
+                <h2 class="card__title">Ficha</h2>
+                <p class="card__subtitle"><strong id="character-title"></strong></p>
+              </div>
+              <button type="button" id="btn-back-characters" class="btn btn--ghost">Volver</button>
+            </div>
+
+            <div id="sheet" class="sheet"></div>
+
+            <div class="grid-2">
+              <div class="card card--inner">
+                <h3 class="card__title card__title--sm">Tirada rápida</h3>
+                <div class="row">
+                  <label class="field">
+                    <span class="field__label">Expresión</span>
+                    <input id="dice-expression" value="1d20+3" />
+                  </label>
+                  <label class="field field--mini">
+                    <span class="field__label">Modo</span>
+                    <select id="d20-mode">
+                      <option value="0">Normal</option>
+                      <option value="1">Ventaja</option>
+                      <option value="2">Desventaja</option>
+                    </select>
+                  </label>
+                </div>
+                <button type="button" id="btn-roll" class="btn btn--primary">Tirar</button>
+                <p id="roll-result" class="notice notice--info hidden" role="status"></p>
+              </div>
+
+              <div class="card card--inner">
+                <h3 class="card__title card__title--sm">Consultar D&D 5e API</h3>
+                <div class="row">
+                  <label class="field">
+                    <span class="field__label">Hechizo</span>
+                    <input id="spell-name" placeholder="ej. fireball" />
+                  </label>
+                </div>
+                <button type="button" id="btn-spell" class="btn btn--ghost">Buscar</button>
+                <pre id="spell-result" class="pre hidden"></pre>
+              </div>
+            </div>
+
+            <div class="card card--inner">
+              <h3 class="card__title card__title--sm">Adjuntos</h3>
+              <div class="row">
+                <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                <button type="button" id="btn-upload" class="btn btn--ghost">Subir</button>
+              </div>
+              <ul id="attachment-list" class="list"></ul>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
   </main>
 
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
 </body>
 </html>
