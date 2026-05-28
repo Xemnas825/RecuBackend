@@ -52,6 +52,13 @@ public sealed class CharacterService(ICampaignRepository campaigns, ICharacterRe
             ProficiencyBonus = request.ProficiencyBonus,
             Strength = request.Strength,
             Dexterity = request.Dexterity,
+            Constitution = request.Constitution,
+            Intelligence = request.Intelligence,
+            Wisdom = request.Wisdom,
+            Charisma = request.Charisma,
+            Initiative = request.Initiative,
+            SpeedFeet = request.SpeedFeet,
+            Size = request.Size,
             IsNpc = request.IsNpc,
             CreatedAtUtc = DateTime.UtcNow
         };
@@ -75,6 +82,13 @@ public sealed class CharacterService(ICampaignRepository campaigns, ICharacterRe
         character.ProficiencyBonus = request.ProficiencyBonus;
         character.Strength = request.Strength;
         character.Dexterity = request.Dexterity;
+        character.Constitution = request.Constitution;
+        character.Intelligence = request.Intelligence;
+        character.Wisdom = request.Wisdom;
+        character.Charisma = request.Charisma;
+        character.Initiative = request.Initiative;
+        character.SpeedFeet = request.SpeedFeet;
+        character.Size = request.Size;
         character.IsNpc = request.IsNpc;
 
         await characters.SaveChangesAsync(ct);
@@ -93,6 +107,9 @@ public sealed class CharacterService(ICampaignRepository campaigns, ICharacterRe
 
     private static CharacterResponse ToResponse(Character ch) => new(
         ch.Id, ch.CampaignId, ch.Name, ch.Race, ch.CharacterClass, ch.Level, ch.ArmorClass,
-        ch.HitPoints, ch.ProficiencyBonus, ch.Strength, ch.Dexterity, ch.IsNpc, ch.CreatedAtUtc);
+        ch.HitPoints, ch.ProficiencyBonus, ch.Strength, ch.Dexterity,
+        ch.Constitution, ch.Intelligence, ch.Wisdom, ch.Charisma,
+        ch.Initiative, ch.SpeedFeet, ch.Size,
+        ch.IsNpc, ch.CreatedAtUtc);
 }
 

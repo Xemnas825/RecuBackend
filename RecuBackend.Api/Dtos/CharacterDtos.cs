@@ -12,6 +12,13 @@ public sealed record CharacterResponse(
     int ProficiencyBonus,
     int Strength,
     int Dexterity,
+    int Constitution,
+    int Intelligence,
+    int Wisdom,
+    int Charisma,
+    int Initiative,
+    int SpeedFeet,
+    string Size,
     bool IsNpc,
     DateTime CreatedAtUtc);
 
@@ -25,6 +32,13 @@ public sealed record CreateCharacterRequest(
     int ProficiencyBonus,
     int Strength,
     int Dexterity,
+    int Constitution,
+    int Intelligence,
+    int Wisdom,
+    int Charisma,
+    int Initiative,
+    int SpeedFeet,
+    string Size,
     bool IsNpc);
 
 public sealed record UpdateCharacterRequest(
@@ -37,4 +51,11 @@ public sealed record UpdateCharacterRequest(
     int ProficiencyBonus,
     int Strength,
     int Dexterity,
+    int Constitution,
+    int Intelligence,
+    int Wisdom,
+    int Charisma,
+    int Initiative,
+    int SpeedFeet,
+    string Size,
     bool IsNpc);

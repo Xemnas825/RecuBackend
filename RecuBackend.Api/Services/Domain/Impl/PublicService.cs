@@ -34,7 +34,10 @@ public sealed class PublicService(
         var items = await characters.ListPublicByCampaignAsync(campaignId, name, race, sortBy, sortDir, ct);
         return items.Select(ch => new CharacterResponse(
             ch.Id, ch.CampaignId, ch.Name, ch.Race, ch.CharacterClass, ch.Level, ch.ArmorClass,
-            ch.HitPoints, ch.ProficiencyBonus, ch.Strength, ch.Dexterity, ch.IsNpc, ch.CreatedAtUtc)).ToList();
+            ch.HitPoints, ch.ProficiencyBonus, ch.Strength, ch.Dexterity,
+            ch.Constitution, ch.Intelligence, ch.Wisdom, ch.Charisma,
+            ch.Initiative, ch.SpeedFeet, ch.Size,
+            ch.IsNpc, ch.CreatedAtUtc)).ToList();
     }
 }
 
