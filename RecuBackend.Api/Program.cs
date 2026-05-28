@@ -6,8 +6,12 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RecuBackend.Api.Auth;
 using RecuBackend.Api.Data;
+using RecuBackend.Api.Repositories.Ef;
+using RecuBackend.Api.Repositories.Interfaces;
 using RecuBackend.Api.Services;
 using RecuBackend.Api.Services.Dnd5e;
+using RecuBackend.Api.Services.Domain.Impl;
+using RecuBackend.Api.Services.Domain.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +92,23 @@ builder.Services.AddHttpClient<IDnd5eApiClient, Dnd5eApiClient>((sp, client) =>
 builder.Services.AddScoped<IUserContext, UserContextAccessor>();
 builder.Services.AddSingleton<DiceRollerService>();
 builder.Services.AddSingleton<TokenService>();
+
+// Repositories (EF Core)
+builder.Services.AddScoped<ICampaignRepository, EfCampaignRepository>();
+builder.Services.AddScoped<ICharacterRepository, EfCharacterRepository>();
+builder.Services.AddScoped<IRollRepository, EfRollRepository>();
+builder.Services.AddScoped<IAttachmentRepository, EfAttachmentRepository>();
+builder.Services.AddScoped<IUserRepository, EfUserRepository>();
+
+// Domain services
+builder.Services.AddScoped<ICampaignService, CampaignService>();
+builder.Services.AddScoped<ICharacterService, CharacterService>();
+builder.Services.AddScoped<IRollService, RollService>();
+builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+builder.Services.AddScoped<IAttachmentDownloadService, AttachmentDownloadService>();
+builder.Services.AddScoped<IPublicService, PublicService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 var app = builder.Build();
 

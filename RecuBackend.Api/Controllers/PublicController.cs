@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using RecuBackend.Api.Data;
 using RecuBackend.Api.Dtos;
-using RecuBackend.Api.Queries;
+using RecuBackend.Api.Services.Domain.Interfaces;
 
 namespace RecuBackend.Api.Controllers;
 
@@ -11,7 +9,7 @@ namespace RecuBackend.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/public")]
-public sealed class PublicController(AppDbContext db) : ControllerBase
+public sealed class PublicController(IPublicService publicService) : ControllerBase
 {
     [HttpGet("campaigns")]
     public async Task<ActionResult<IEnumerable<CampaignResponse>>> GetPublicCampaigns(
@@ -21,15 +19,7 @@ public sealed class PublicController(AppDbContext db) : ControllerBase
         [FromQuery] string? sortDir,
         CancellationToken ct)
     {
-        var items = await db.Campaigns
-            .AsNoTracking()
-            .Where(c => c.IsPublic && c.IsActive)
-            .ApplyCampaignFilters(search, setting, isActive: true, isPublic: true)
-            .ApplyCampaignSort(sortBy, sortDir)
-            .Select(c => new CampaignResponse(
-                c.Id, c.Name, c.Setting, c.Description, c.IsPublic, c.IsActive, c.CreatedAtUtc, c.UpdatedAtUtc))
-            .ToListAsync(ct);
-
+        var items = await publicService.ListPublicCampaignsAsync(search, setting, sortBy, sortDir, ct);
         return Ok(items);
     }
 
@@ -42,22 +32,7 @@ public sealed class PublicController(AppDbContext db) : ControllerBase
         [FromQuery] string? sortDir,
         CancellationToken ct)
     {
-        var isPublic = await db.Campaigns
-            .AsNoTracking()
-            .AnyAsync(c => c.Id == campaignId && c.IsPublic && c.IsActive, ct);
-
-        if (!isPublic) return NotFound();
-
-        var items = await db.Characters
-            .AsNoTracking()
-            .Where(ch => ch.CampaignId == campaignId)
-            .ApplyCharacterFilters(name, race, characterClass: null, isNpc: false)
-            .ApplyCharacterSort(sortBy, sortDir)
-            .Select(ch => new CharacterResponse(
-                ch.Id, ch.CampaignId, ch.Name, ch.Race, ch.CharacterClass, ch.Level, ch.ArmorClass,
-                ch.HitPoints, ch.ProficiencyBonus, ch.Strength, ch.Dexterity, ch.IsNpc, ch.CreatedAtUtc))
-            .ToListAsync(ct);
-
-        return Ok(items);
+        var items = await publicService.ListPublicCharactersAsync(campaignId, name, race, sortBy, sortDir, ct);
+        return items is null ? NotFound() : Ok(items);
     }
 }

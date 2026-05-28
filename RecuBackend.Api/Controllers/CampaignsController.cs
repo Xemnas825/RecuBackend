@@ -1,18 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RecuBackend.Api.Auth;
-using Microsoft.EntityFrameworkCore;
-using RecuBackend.Api.Data;
 using RecuBackend.Api.Dtos;
-using RecuBackend.Api.Models;
-using RecuBackend.Api.Queries;
 using RecuBackend.Api.Services;
+using RecuBackend.Api.Services.Domain.Interfaces;
 
 namespace RecuBackend.Api.Controllers;
 
 [Authorize(Roles = AppRoles.Authenticated)]
 [Route("api/campaigns")]
-public sealed class CampaignsController(AppDbContext db, IUserContext userContext) : ApiControllerBase
+public sealed class CampaignsController(ICampaignService campaigns, IUserContext userContext) : ApiControllerBase
 {
     /// <summary>
     /// Filtros: search (name/setting/description), setting, isActive, isPublic.
@@ -30,14 +27,8 @@ public sealed class CampaignsController(AppDbContext db, IUserContext userContex
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var campaigns = await db.Campaigns
-            .AsNoTracking()
-            .Where(c => c.OwnerUserId == ownerId)
-            .ApplyCampaignFilters(search, setting, isActive, isPublic)
-            .ApplyCampaignSort(sortBy, sortDir)
-            .ToListAsync(ct);
-
-        return Ok(campaigns.Select(ToResponse));
+        var items = await campaigns.ListAsync(ownerId, search, setting, isActive, isPublic, sortBy, sortDir, ct);
+        return Ok(items);
     }
 
     [HttpGet("{id:guid}")]
@@ -45,11 +36,8 @@ public sealed class CampaignsController(AppDbContext db, IUserContext userContex
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var campaign = await db.Campaigns
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == id && c.OwnerUserId == ownerId, ct);
-
-        return campaign is null ? NotFound() : Ok(ToResponse(campaign));
+        var campaign = await campaigns.GetByIdAsync(id, ownerId, ct);
+        return campaign is null ? NotFound() : Ok(campaign);
     }
 
     [HttpPost]
@@ -57,24 +45,8 @@ public sealed class CampaignsController(AppDbContext db, IUserContext userContex
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var now = DateTime.UtcNow;
-        var campaign = new Campaign
-        {
-            Id = Guid.NewGuid(),
-            OwnerUserId = ownerId,
-            Name = request.Name,
-            Setting = request.Setting,
-            Description = request.Description,
-            IsPublic = request.IsPublic,
-            IsActive = request.IsActive,
-            CreatedAtUtc = now,
-            UpdatedAtUtc = now
-        };
-
-        db.Campaigns.Add(campaign);
-        await db.SaveChangesAsync(ct);
-
-        return CreatedAtAction(nameof(GetById), new { id = campaign.Id }, ToResponse(campaign));
+        var created = await campaigns.CreateAsync(ownerId, request, ct);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpPut("{id:guid}")]
@@ -82,20 +54,8 @@ public sealed class CampaignsController(AppDbContext db, IUserContext userContex
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var campaign = await db.Campaigns
-            .FirstOrDefaultAsync(c => c.Id == id && c.OwnerUserId == ownerId, ct);
-
-        if (campaign is null) return NotFound();
-
-        campaign.Name = request.Name;
-        campaign.Setting = request.Setting;
-        campaign.Description = request.Description;
-        campaign.IsPublic = request.IsPublic;
-        campaign.IsActive = request.IsActive;
-        campaign.UpdatedAtUtc = DateTime.UtcNow;
-
-        await db.SaveChangesAsync(ct);
-        return Ok(ToResponse(campaign));
+        var updated = await campaigns.UpdateAsync(id, ownerId, request, ct);
+        return updated is null ? NotFound() : Ok(updated);
     }
 
     [HttpDelete("{id:guid}")]
@@ -103,16 +63,7 @@ public sealed class CampaignsController(AppDbContext db, IUserContext userContex
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var campaign = await db.Campaigns
-            .FirstOrDefaultAsync(c => c.Id == id && c.OwnerUserId == ownerId, ct);
-
-        if (campaign is null) return NotFound();
-
-        db.Campaigns.Remove(campaign);
-        await db.SaveChangesAsync(ct);
-        return NoContent();
+        var deleted = await campaigns.DeleteAsync(id, ownerId, ct);
+        return deleted ? NoContent() : NotFound();
     }
-
-    private static CampaignResponse ToResponse(Campaign c) => new(
-        c.Id, c.Name, c.Setting, c.Description, c.IsPublic, c.IsActive, c.CreatedAtUtc, c.UpdatedAtUtc);
 }

@@ -1,18 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RecuBackend.Api.Auth;
-using Microsoft.EntityFrameworkCore;
-using RecuBackend.Api.Data;
 using RecuBackend.Api.Dtos;
-using RecuBackend.Api.Models;
-using RecuBackend.Api.Queries;
 using RecuBackend.Api.Services;
+using RecuBackend.Api.Services.Domain.Interfaces;
 
 namespace RecuBackend.Api.Controllers;
 
 [Authorize(Roles = AppRoles.Authenticated)]
 [Route("api/campaigns/{campaignId:guid}/characters")]
-public sealed class CharactersController(AppDbContext db, IUserContext userContext) : ApiControllerBase
+public sealed class CharactersController(ICharacterService characters, IUserContext userContext) : ApiControllerBase
 {
     /// <summary>
     /// Filtros: name, race, characterClass, isNpc.
@@ -30,16 +27,8 @@ public sealed class CharactersController(AppDbContext db, IUserContext userConte
         CancellationToken ct)
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
-        if (!await OwnsCampaign(campaignId, ownerId, ct)) return NotFound();
-
-        var characters = await db.Characters
-            .AsNoTracking()
-            .Where(ch => ch.CampaignId == campaignId && ch.OwnerUserId == ownerId)
-            .ApplyCharacterFilters(name, race, characterClass, isNpc)
-            .ApplyCharacterSort(sortBy, sortDir)
-            .ToListAsync(ct);
-
-        return Ok(characters.Select(ToResponse));
+        var items = await characters.ListAsync(campaignId, ownerId, name, race, characterClass, isNpc, sortBy, sortDir, ct);
+        return items is null ? NotFound() : Ok(items);
     }
 
     [HttpGet("{id:guid}", Name = "GetCharacter")]
@@ -47,11 +36,8 @@ public sealed class CharactersController(AppDbContext db, IUserContext userConte
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var character = await db.Characters
-            .AsNoTracking()
-            .FirstOrDefaultAsync(ch => ch.Id == id && ch.CampaignId == campaignId && ch.OwnerUserId == ownerId, ct);
-
-        return character is null ? NotFound() : Ok(ToResponse(character));
+        var character = await characters.GetByIdAsync(campaignId, id, ownerId, ct);
+        return character is null ? NotFound() : Ok(character);
     }
 
     [HttpPost]
@@ -59,30 +45,9 @@ public sealed class CharactersController(AppDbContext db, IUserContext userConte
         Guid campaignId, CreateCharacterRequest request, CancellationToken ct)
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
-        if (!await OwnsCampaign(campaignId, ownerId, ct)) return NotFound();
-
-        var character = new Character
-        {
-            Id = Guid.NewGuid(),
-            CampaignId = campaignId,
-            OwnerUserId = ownerId,
-            Name = request.Name,
-            Race = request.Race,
-            CharacterClass = request.CharacterClass,
-            Level = request.Level,
-            ArmorClass = request.ArmorClass,
-            HitPoints = request.HitPoints,
-            ProficiencyBonus = request.ProficiencyBonus,
-            Strength = request.Strength,
-            Dexterity = request.Dexterity,
-            IsNpc = request.IsNpc,
-            CreatedAtUtc = DateTime.UtcNow
-        };
-
-        db.Characters.Add(character);
-        await db.SaveChangesAsync(ct);
-
-        return CreatedAtRoute("GetCharacter", new { campaignId, id = character.Id }, ToResponse(character));
+        var created = await characters.CreateAsync(campaignId, ownerId, request, ct);
+        if (created is null) return NotFound();
+        return CreatedAtRoute("GetCharacter", new { campaignId, id = created.Id }, created);
     }
 
     [HttpPut("{id:guid}")]
@@ -91,24 +56,8 @@ public sealed class CharactersController(AppDbContext db, IUserContext userConte
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var character = await db.Characters
-            .FirstOrDefaultAsync(ch => ch.Id == id && ch.CampaignId == campaignId && ch.OwnerUserId == ownerId, ct);
-
-        if (character is null) return NotFound();
-
-        character.Name = request.Name;
-        character.Race = request.Race;
-        character.CharacterClass = request.CharacterClass;
-        character.Level = request.Level;
-        character.ArmorClass = request.ArmorClass;
-        character.HitPoints = request.HitPoints;
-        character.ProficiencyBonus = request.ProficiencyBonus;
-        character.Strength = request.Strength;
-        character.Dexterity = request.Dexterity;
-        character.IsNpc = request.IsNpc;
-
-        await db.SaveChangesAsync(ct);
-        return Ok(ToResponse(character));
+        var updated = await characters.UpdateAsync(campaignId, id, ownerId, request, ct);
+        return updated is null ? NotFound() : Ok(updated);
     }
 
     [HttpDelete("{id:guid}")]
@@ -116,20 +65,7 @@ public sealed class CharactersController(AppDbContext db, IUserContext userConte
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var character = await db.Characters
-            .FirstOrDefaultAsync(ch => ch.Id == id && ch.CampaignId == campaignId && ch.OwnerUserId == ownerId, ct);
-
-        if (character is null) return NotFound();
-
-        db.Characters.Remove(character);
-        await db.SaveChangesAsync(ct);
-        return NoContent();
+        var deleted = await characters.DeleteAsync(campaignId, id, ownerId, ct);
+        return deleted ? NoContent() : NotFound();
     }
-
-    private Task<bool> OwnsCampaign(Guid campaignId, Guid ownerId, CancellationToken ct) =>
-        db.Campaigns.AnyAsync(c => c.Id == campaignId && c.OwnerUserId == ownerId, ct);
-
-    private static CharacterResponse ToResponse(Character ch) => new(
-        ch.Id, ch.CampaignId, ch.Name, ch.Race, ch.CharacterClass, ch.Level, ch.ArmorClass,
-        ch.HitPoints, ch.ProficiencyBonus, ch.Strength, ch.Dexterity, ch.IsNpc, ch.CreatedAtUtc);
 }
