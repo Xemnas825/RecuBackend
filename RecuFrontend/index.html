@@ -212,20 +212,37 @@
               <form id="character-form" class="form" style="margin-bottom:.85rem">
                 <details class="collapse">
                   <summary class="collapse__summary">➕ Añadir personaje</summary>
-                  <div class="collapse__body">
+                  <div class="collapse__body char-form-body">
                     <div class="row row--3">
                       <label class="field"><span class="field__label">Nombre</span><input name="name" required /></label>
                       <label class="field"><span class="field__label">Raza</span><input name="race" required /></label>
                       <label class="field"><span class="field__label">Clase</span><input name="characterClass" required /></label>
                     </div>
-                    <div class="row row--stats">
-                      <label class="field field--mini"><span class="field__label">Nivel</span><input name="level"           type="number" value="1"  min="1" /></label>
-                      <label class="field field--mini"><span class="field__label">CA</span>   <input name="armorClass"      type="number" value="10" min="0" /></label>
-                      <label class="field field--mini"><span class="field__label">PG</span>   <input name="hitPoints"       type="number" value="10" min="0" /></label>
-                      <label class="field field--mini"><span class="field__label">Comp.</span><input name="proficiencyBonus" type="number" value="2"  min="0" /></label>
-                      <label class="field field--mini"><span class="field__label">FUE</span>  <input name="strength"        type="number" value="10" min="1" max="30" /></label>
-                      <label class="field field--mini"><span class="field__label">DES</span>  <input name="dexterity"       type="number" value="10" min="1" max="30" /></label>
+                    <div class="row row--3">
+                      <label class="field"><span class="field__label">Trasfondo</span><input name="background" placeholder="ej. Soldado" /></label>
+                      <label class="field"><span class="field__label">Alineamiento</span>
+                        <select name="alignment"><option value="">—</option></select>
+                      </label>
+                      <label class="field"><span class="field__label">Idiomas</span><input name="languages" placeholder="Común, Élfico…" /></label>
                     </div>
+                    <div class="row row--stats">
+                      <label class="field field--mini"><span class="field__label">Nivel</span><input name="level" type="number" value="1" min="1" max="20" /></label>
+                      <label class="field field--mini"><span class="field__label">CA</span><input name="armorClass" type="number" value="10" min="0" /></label>
+                      <label class="field field--mini"><span class="field__label">PG máx.</span><input name="hitPoints" type="number" value="10" min="0" /></label>
+                      <label class="field field--mini"><span class="field__label">PG act.</span><input name="currentHitPoints" type="number" value="10" min="0" /></label>
+                      <label class="field field--mini"><span class="field__label">Comp.</span><input name="proficiencyBonus" type="number" value="2" min="2" max="6" /></label>
+                    </div>
+                    <p class="field__label" style="margin:0">Atributos</p>
+                    <div class="row row--stats">
+                      <label class="field field--mini"><span class="field__label">FUE</span><input name="strength" type="number" value="10" min="1" max="30" /></label>
+                      <label class="field field--mini"><span class="field__label">DES</span><input name="dexterity" type="number" value="10" min="1" max="30" /></label>
+                      <label class="field field--mini"><span class="field__label">CON</span><input name="constitution" type="number" value="10" min="1" max="30" /></label>
+                      <label class="field field--mini"><span class="field__label">INT</span><input name="intelligence" type="number" value="10" min="1" max="30" /></label>
+                      <label class="field field--mini"><span class="field__label">SAB</span><input name="wisdom" type="number" value="10" min="1" max="30" /></label>
+                      <label class="field field--mini"><span class="field__label">CAR</span><input name="charisma" type="number" value="10" min="1" max="30" /></label>
+                    </div>
+                    <p class="field__label" style="margin:0">Competencias (PHB)</p>
+                    <div id="skill-profs-create"></div>
                     <label class="checkbox"><input type="checkbox" name="isNpc" /><span>Es NPC</span></label>
                     <button type="submit" class="btn btn--primary">Crear personaje</button>
                   </div>
@@ -261,20 +278,37 @@
               <!-- Tab: Ficha -->
               <div id="char-tab-sheet" class="char-panel">
                 <div id="sheet" class="sheet"></div>
-                <form id="character-edit-form" class="form hidden">
+                <form id="character-edit-form" class="form hidden char-form-body">
                   <div class="row row--3">
                     <label class="field"><span class="field__label">Nombre</span><input name="name" required /></label>
                     <label class="field"><span class="field__label">Raza</span><input name="race" required /></label>
                     <label class="field"><span class="field__label">Clase</span><input name="characterClass" required /></label>
                   </div>
-                  <div class="row row--stats">
-                    <label class="field field--mini"><span class="field__label">Nivel</span><input name="level"           type="number" min="1" /></label>
-                    <label class="field field--mini"><span class="field__label">CA</span>   <input name="armorClass"      type="number" min="0" /></label>
-                    <label class="field field--mini"><span class="field__label">PG</span>   <input name="hitPoints"       type="number" min="0" /></label>
-                    <label class="field field--mini"><span class="field__label">Comp.</span><input name="proficiencyBonus" type="number" min="0" /></label>
-                    <label class="field field--mini"><span class="field__label">FUE</span>  <input name="strength"        type="number" min="1" max="30" /></label>
-                    <label class="field field--mini"><span class="field__label">DES</span>  <input name="dexterity"       type="number" min="1" max="30" /></label>
+                  <div class="row row--3">
+                    <label class="field"><span class="field__label">Trasfondo</span><input name="background" /></label>
+                    <label class="field"><span class="field__label">Alineamiento</span>
+                      <select name="alignment"><option value="">—</option></select>
+                    </label>
+                    <label class="field"><span class="field__label">Idiomas</span><input name="languages" /></label>
                   </div>
+                  <div class="row row--stats">
+                    <label class="field field--mini"><span class="field__label">Nivel</span><input name="level" type="number" min="1" max="20" /></label>
+                    <label class="field field--mini"><span class="field__label">CA</span><input name="armorClass" type="number" min="0" /></label>
+                    <label class="field field--mini"><span class="field__label">PG máx.</span><input name="hitPoints" type="number" min="0" /></label>
+                    <label class="field field--mini"><span class="field__label">PG act.</span><input name="currentHitPoints" type="number" min="0" /></label>
+                    <label class="field field--mini"><span class="field__label">Comp.</span><input name="proficiencyBonus" type="number" min="2" max="6" /></label>
+                  </div>
+                  <p class="field__label" style="margin:0">Atributos</p>
+                  <div class="row row--stats">
+                    <label class="field field--mini"><span class="field__label">FUE</span><input name="strength" type="number" min="1" max="30" /></label>
+                    <label class="field field--mini"><span class="field__label">DES</span><input name="dexterity" type="number" min="1" max="30" /></label>
+                    <label class="field field--mini"><span class="field__label">CON</span><input name="constitution" type="number" min="1" max="30" /></label>
+                    <label class="field field--mini"><span class="field__label">INT</span><input name="intelligence" type="number" min="1" max="30" /></label>
+                    <label class="field field--mini"><span class="field__label">SAB</span><input name="wisdom" type="number" min="1" max="30" /></label>
+                    <label class="field field--mini"><span class="field__label">CAR</span><input name="charisma" type="number" min="1" max="30" /></label>
+                  </div>
+                  <p class="field__label" style="margin:0">Competencias</p>
+                  <div id="skill-profs-edit"></div>
                   <label class="checkbox"><input type="checkbox" name="isNpc" /><span>Es NPC</span></label>
                   <div class="btn-group">
                     <button type="submit" class="btn btn--primary">Guardar ficha</button>
@@ -418,6 +452,7 @@
   </div>
 
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script src="sheet-rules.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

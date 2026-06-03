@@ -45,6 +45,10 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(120);
             e.Property(x => x.Race).HasMaxLength(60);
             e.Property(x => x.CharacterClass).HasMaxLength(60);
+            e.Property(x => x.Alignment).HasMaxLength(40);
+            e.Property(x => x.Background).HasMaxLength(120);
+            e.Property(x => x.Languages).HasMaxLength(300);
+            e.Property(x => x.SkillProficienciesJson).HasMaxLength(2000);
             e.HasIndex(x => x.OwnerUserId);
             e.HasOne(x => x.Campaign)
                 .WithMany(c => c.Characters)

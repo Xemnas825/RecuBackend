@@ -310,12 +310,15 @@ async function openCharacter(id) {
   show($('character-edit-form'), false);
 
   try {
-    const ch = await api(`/api/campaigns/${state.campaignId}/characters/${id}`);
+    const ch = normalizeCharacter(await api(`/api/campaigns/${state.campaignId}/characters/${id}`));
     state.character = ch;
     setText($('character-title'), ch.name);
-    setText($('character-meta'), `${ch.race} · ${ch.characterClass} · Nivel ${ch.level}${ch.isNpc ? ' · NPC' : ''}`);
+    const meta = [ch.race, ch.characterClass, `Nivel ${ch.level}`];
+    if (ch.alignment) meta.push(ch.alignment);
+    if (ch.isNpc) meta.push('NPC');
+    setText($('character-meta'), meta.join(' · '));
     renderSheet(ch);
-    fillForm($('character-edit-form'), ch);
+    fillCharacterForm($('character-edit-form'), ch);
     switchCharTab('sheet');
     loadRollHistory();
     loadAttachments();
@@ -333,59 +336,106 @@ function switchCharTab(tab) {
   show($('char-tab-files'), tab === 'files');
 }
 
-function abilityMod(score) {
-  const m = Math.floor((Number(score) - 10) / 2);
-  return m >= 0 ? `+${m}` : `${m}`;
-}
-
-function statBlock(name, score) {
+function statBlock(label, score) {
   const v = score ?? '—';
-  const mod = (score != null) ? abilityMod(score) : '—';
+  const mod = score != null ? formatMod(abilityModValue(score)) : '—';
   return `
     <div class="stat">
-      <div class="stat__abbr">${name}</div>
+      <div class="stat__abbr">${label}</div>
       <div class="stat__score">${v}</div>
       <div class="stat__mod">${mod}</div>
     </div>`;
 }
 
-function renderSheet(ch) {
+function renderSkillsPanel(ch) {
+  const rows = DND_SKILLS.map((skill) => {
+    const mod = skillModifier(ch, skill.id);
+    const proficient = isSkillProficient(ch, skill.id);
+    const ab = DND_ABILITIES.find((a) => a.key === skill.ability);
+    return `
+      <button type="button" class="skill-row" data-skill-id="${skill.id}" data-skill-name="${escAttr(skill.name)}" title="Tirar ${esc(skill.name)} (1d20${formatMod(mod)})">
+        <span class="skill-row__dot ${proficient ? 'skill-row__dot--on' : ''}" aria-hidden="true"></span>
+        <span class="skill-row__name">${esc(skill.name)}</span>
+        <span class="skill-row__ab">${ab?.label || ''}</span>
+        <span class="skill-row__mod">${formatMod(mod)}</span>
+      </button>`;
+  }).join('');
+
+  return `<div class="skills-panel"><div class="skills-panel__head">Competencias <span class="muted">(clic = tirada 1d20 + mod)</span></div><div class="skills-list">${rows}</div></div>`;
+}
+
+function renderSheet(raw) {
   const sheet = $('sheet');
   if (!sheet) return;
+  const ch = normalizeCharacter(raw);
+  const lore = [
+    ch.background ? `<span><strong>Trasfondo:</strong> ${esc(ch.background)}</span>` : '',
+    ch.alignment ? `<span><strong>Alineamiento:</strong> ${esc(ch.alignment)}</span>` : '',
+    ch.languages ? `<span><strong>Idiomas:</strong> ${esc(ch.languages)}</span>` : '',
+  ].filter(Boolean).join(' · ');
+
   sheet.innerHTML = `
-    <div class="sheet__panel">
+    <div class="sheet__panel sheet__panel--hero">
       <div class="sheet__header">
         <h3 class="sheet__name">${esc(ch.name)}</h3>
         ${ch.isNpc ? '<span class="badge badge--npc">NPC</span>' : ''}
       </div>
-      <div style="color:var(--text-2);font-size:.9rem;margin-bottom:1rem">${esc(ch.race)} &nbsp;·&nbsp; ${esc(ch.characterClass)}</div>
+      <div class="sheet__classline">${esc(ch.race)} · ${esc(ch.characterClass)} · Nivel ${ch.level}</div>
+      ${lore ? `<div class="sheet__lore">${lore}</div>` : ''}
       <div class="kpi">
-        <div class="kpi__item">
-          <div class="kpi__label">Nivel</div>
-          <div class="kpi__value">${ch.level}</div>
-        </div>
-        <div class="kpi__item">
-          <div class="kpi__label">CA</div>
-          <div class="kpi__value">${ch.armorClass}</div>
-        </div>
-        <div class="kpi__item">
-          <div class="kpi__label">PG máx.</div>
-          <div class="kpi__value">${ch.hitPoints}</div>
-        </div>
-        <div class="kpi__item">
-          <div class="kpi__label">Comp.</div>
-          <div class="kpi__value">+${ch.proficiencyBonus}</div>
-        </div>
+        <div class="kpi__item"><div class="kpi__label">CA</div><div class="kpi__value">${ch.armorClass}</div></div>
+        <div class="kpi__item"><div class="kpi__label">Vida</div><div class="kpi__value">${ch.currentHitPoints}/${ch.hitPoints}</div></div>
+        <div class="kpi__item"><div class="kpi__label">Comp.</div><div class="kpi__value">+${ch.proficiencyBonus}</div></div>
+        <div class="kpi__item"><div class="kpi__label">Inic.</div><div class="kpi__value">${formatMod(abilityModValue(ch.dexterity))}</div></div>
       </div>
     </div>
     <div class="sheet__panel">
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:var(--text-3);margin-bottom:.85rem">Atributos</div>
-      <div class="stats">
-        ${statBlock('FUE', ch.strength)}
-        ${statBlock('DES', ch.dexterity)}
+      <div class="sheet__section-title">Atributos y salvaciones</div>
+      <div class="stats stats--6">
+        ${DND_ABILITIES.map((a) => statBlock(a.label, ch[a.key])).join('')}
       </div>
+      <p class="sheet__hint muted">Iniciativa = modificador de DES (${formatMod(abilityModValue(ch.dexterity))})</p>
+    </div>
+    <div class="sheet__panel sheet__panel--wide">
+      ${renderSkillsPanel(ch)}
     </div>
   `;
+
+  sheet.querySelectorAll('.skill-row').forEach((btn) => {
+    btn.onclick = () => rollSkill(btn.dataset.skillId, btn.dataset.skillName);
+  });
+}
+
+function fillCharacterForm(form, ch) {
+  if (!form || !ch) return;
+  const n = normalizeCharacter(ch);
+  fillForm(form, n);
+  const containerId = form.id === 'character-form' ? 'skill-profs-create' : 'skill-profs-edit';
+  mountSkillProficiencies($(containerId), n.skillProficiencies);
+}
+
+async function rollSkill(skillId, skillName) {
+  const ch = state.character;
+  if (!ch || !state.characterId) return;
+  const mod = skillModifier(ch, skillId);
+  const expr = buildD20Expression(mod);
+  const proficient = isSkillProficient(ch, skillId);
+  const label = `${skillName} (${formatMod(mod)}${proficient ? ', competente' : ''})`;
+  const mode = Number($('d20-mode')?.value || 0);
+
+  try {
+    const roll = await api(`/api/characters/${state.characterId}/rolls`, {
+      method: 'POST',
+      body: JSON.stringify({ label, diceExpression: expr, d20Mode: mode }),
+    });
+    switchCharTab('dice');
+    if ($('dice-expression')) $('dice-expression').value = expr;
+    showRollResult(roll);
+    loadRollHistory();
+    toast(`Tirada: ${skillName} ${formatMod(mod)}`);
+  } catch (e) {
+    toast(e.message);
+  }
 }
 
 // ─── Rolls ────────────────────────────────────────────────────
@@ -863,18 +913,7 @@ $('character-form').onsubmit = async (e) => {
   try {
     await api(`/api/campaigns/${state.campaignId}/characters`, {
       method: 'POST',
-      body: JSON.stringify({
-        name: data.name,
-        race: data.race,
-        characterClass: data.characterClass,
-        level: Number(data.level),
-        armorClass: Number(data.armorClass),
-        hitPoints: Number(data.hitPoints),
-        proficiencyBonus: Number(data.proficiencyBonus),
-        strength: Number(data.strength),
-        dexterity: Number(data.dexterity),
-        isNpc: !!data.isNpc,
-      }),
+      body: JSON.stringify(characterPayload(data, e.target)),
     });
     e.target.reset();
     const details = e.target.querySelector('details');
@@ -904,20 +943,9 @@ $('character-edit-form').onsubmit = async (e) => {
   try {
     const updated = await api(`/api/campaigns/${state.campaignId}/characters/${state.characterId}`, {
       method: 'PUT',
-      body: JSON.stringify({
-        name: data.name,
-        race: data.race,
-        characterClass: data.characterClass,
-        level: Number(data.level),
-        armorClass: Number(data.armorClass),
-        hitPoints: Number(data.hitPoints),
-        proficiencyBonus: Number(data.proficiencyBonus),
-        strength: Number(data.strength),
-        dexterity: Number(data.dexterity),
-        isNpc: !!data.isNpc,
-      }),
+      body: JSON.stringify(characterPayload(data, e.target)),
     });
-    state.character = updated;
+    state.character = normalizeCharacter(updated);
     setText($('character-title'), updated.name);
     setText($('character-meta'), `${updated.race} · ${updated.characterClass} · Nivel ${updated.level}`);
     renderSheet(updated);
@@ -930,6 +958,7 @@ $('character-edit-form').onsubmit = async (e) => {
 };
 
 $('btn-edit-character').onclick = () => {
+  if (state.character) fillCharacterForm($('character-edit-form'), state.character);
   show($('character-edit-form'), true);
   show($('sheet'), false);
 };
@@ -937,7 +966,7 @@ $('btn-edit-character').onclick = () => {
 $('btn-cancel-char-edit').onclick = () => {
   show($('character-edit-form'), false);
   show($('sheet'), true);
-  if (state.character) fillForm($('character-edit-form'), state.character);
+  if (state.character) fillCharacterForm($('character-edit-form'), state.character);
 };
 
 $('btn-delete-character').onclick = async () => {
@@ -1047,6 +1076,23 @@ $('btn-back-public').onclick = () => {
 $('modal-cancel').onclick = () => closeModal(false);
 $('modal-confirm').onclick = () => closeModal(true);
 $('modal').querySelector('.modal__backdrop')?.addEventListener('click', () => closeModal(false));
+
+function initCharacterForms() {
+  document.querySelectorAll('select[name="alignment"]').forEach((sel) => {
+    DND_ALIGNMENTS.forEach((a) => {
+      const opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a;
+      sel.appendChild(opt);
+    });
+  });
+  mountSkillProficiencies($('skill-profs-create'), []);
+  mountSkillProficiencies($('skill-profs-edit'), []);
+  bindLevelProficiencySync($('character-form'));
+  bindLevelProficiencySync($('character-edit-form'));
+}
+
+initCharacterForms();
 
 // Init
 if (state.token) showApp(true);

@@ -32,9 +32,7 @@ public sealed class PublicService(
         if (campaign is null || !campaign.IsPublic || !campaign.IsActive) return null;
 
         var items = await characters.ListPublicByCampaignAsync(campaignId, name, race, sortBy, sortDir, ct);
-        return items.Select(ch => new CharacterResponse(
-            ch.Id, ch.CampaignId, ch.Name, ch.Race, ch.CharacterClass, ch.Level, ch.ArmorClass,
-            ch.HitPoints, ch.ProficiencyBonus, ch.Strength, ch.Dexterity, ch.IsNpc, ch.CreatedAtUtc)).ToList();
+        return items.Select(CharacterDtoMapping.ToResponse).ToList();
     }
 }
 
