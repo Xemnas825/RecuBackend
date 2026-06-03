@@ -3,32 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RecuBackend – DnD Companion</title>
+  <title>Recu · DnD Companion</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
 </head>
 <body>
+
+  <!-- ═══ TOPBAR ═══ -->
   <header class="topbar">
     <div class="topbar__left">
       <div class="brand">
-        <div class="brand__title">DnD Companion</div>
-        <div class="brand__subtitle">Campañas · Personajes · Tiradas</div>
+        <span class="brand__icon" aria-hidden="true">⚔</span>
+        <div>
+          <div class="brand__title">Recu Companion</div>
+          <div class="brand__subtitle">Campañas · Fichas · Dados</div>
+        </div>
       </div>
     </div>
+
+    <nav id="main-nav" class="main-nav hidden" aria-label="Navegación principal">
+      <button type="button" class="nav-btn active" data-view="campaigns">🗺 Mis Campañas</button>
+      <button type="button" class="nav-btn" data-view="public">🌐 Explorar</button>
+      <button type="button" class="nav-btn" data-view="compendium">📖 Compendio</button>
+      <button type="button" class="nav-btn hidden" data-view="admin" id="nav-admin">⚙ Admin</button>
+    </nav>
+
     <div class="topbar__right">
       <div id="user-info" class="user-badge"></div>
-      <button id="btn-logout" class="btn btn--ghost hidden" type="button">Cerrar sesión</button>
+      <button id="btn-logout" class="btn btn--ghost btn--sm hidden" type="button">Salir</button>
     </div>
   </header>
 
   <main class="page">
+
+    <!-- ═══ AUTH ═══ -->
     <section id="auth-section" class="auth">
-      <div class="card auth__card">
-        <h2 class="card__title">Acceso</h2>
-        <p class="card__subtitle">Inicia sesión o crea un usuario para guardar tus campañas.</p>
+      <div class="auth__card">
+        <div class="auth__hero">
+          <span class="auth__emblem" aria-hidden="true">🐉</span>
+          <h1 class="auth__title">Tu mesa, en la nube</h1>
+          <p class="auth__lead">Gestiona campañas, fichas de personaje, tiradas de dados y consulta el compendio D&amp;D 5e.</p>
+        </div>
 
         <div class="tabs" role="tablist" aria-label="Acceso">
-          <button type="button" data-tab="login" class="tab active" role="tab" aria-selected="true">Login</button>
-          <button type="button" data-tab="register" class="tab" role="tab" aria-selected="false">Registro</button>
+          <button type="button" data-tab="login"    class="tab active" role="tab" aria-selected="true">Iniciar sesión</button>
+          <button type="button" data-tab="register" class="tab"        role="tab" aria-selected="false">Crear cuenta</button>
         </div>
 
         <form id="login-form" class="form">
@@ -40,7 +61,7 @@
             <span class="field__label">Contraseña</span>
             <input name="password" autocomplete="current-password" type="password" placeholder="••••••••" required />
           </label>
-          <button class="btn btn--primary" type="submit">Entrar</button>
+          <button class="btn btn--primary btn--block btn--lg" type="submit">Entrar</button>
         </form>
 
         <form id="register-form" class="form hidden">
@@ -56,174 +77,345 @@
             <span class="field__label">Contraseña</span>
             <input name="password" autocomplete="new-password" type="password" placeholder="mínimo 6 caracteres" required />
           </label>
-          <button class="btn btn--primary" type="submit">Registrarse</button>
+          <button class="btn btn--primary btn--block btn--lg" type="submit">Crear cuenta</button>
         </form>
 
         <p id="auth-error" class="notice notice--error hidden" role="alert"></p>
-        <p class="muted">Consejo: si estás en Docker, revisa que la API esté levantada y accesible.</p>
       </div>
     </section>
 
+    <!-- ═══ APP ═══ -->
     <section id="app-section" class="hidden">
-      <div class="app">
-        <aside class="sidebar">
-          <div class="sidebar__section">
-            <div class="sidebar__title">Campañas</div>
-            <form id="campaign-form" class="form form--compact">
-              <div class="row">
+
+      <!-- ── Vista: Mis Campañas ── -->
+      <div id="view-campaigns" class="view">
+        <div class="app">
+
+          <!-- Sidebar -->
+          <aside class="sidebar">
+            <div class="sidebar__section">
+              <div class="sidebar__title">✦ Nueva campaña</div>
+              <form id="campaign-form" class="form form--compact">
                 <label class="field">
                   <span class="field__label">Nombre</span>
-                  <input name="name" placeholder="ej. La Mina Perdida" required />
+                  <input name="name" placeholder="La Mina Perdida" required />
                 </label>
                 <label class="field">
                   <span class="field__label">Ambientación</span>
-                  <input name="setting" placeholder="ej. Forgotten Realms" required />
+                  <input name="setting" placeholder="Forgotten Realms" required />
                 </label>
-              </div>
-              <label class="checkbox">
-                <input type="checkbox" name="isPublic" />
-                <span>Pública</span>
-              </label>
-              <button class="btn btn--primary" type="submit">Crear campaña</button>
-              <div id="campaigns-loading" class="spinner hidden" aria-hidden="true"></div>
-              <p id="campaigns-error" class="notice notice--error hidden" role="alert"></p>
-            </form>
-          </div>
-          <div class="sidebar__section">
-            <ul id="campaign-list" class="list"></ul>
-          </div>
-        </aside>
-
-        <section class="content">
-          <div id="campaign-detail" class="card hidden">
-            <div class="card__header">
-              <div>
-                <h2 class="card__title">Personajes</h2>
-                <p class="card__subtitle">Campaña: <strong id="campaign-title"></strong></p>
-              </div>
-              <button type="button" id="btn-back-campaigns" class="btn btn--ghost">Volver</button>
+                <label class="field">
+                  <span class="field__label">Descripción</span>
+                  <textarea name="description" rows="2" placeholder="Resumen de la aventura…"></textarea>
+                </label>
+                <div class="chip-row">
+                  <label class="checkbox"><input type="checkbox" name="isPublic" /><span>Pública</span></label>
+                  <label class="checkbox"><input type="checkbox" name="isActive" checked /><span>Activa</span></label>
+                </div>
+                <button class="btn btn--primary btn--block" type="submit">+ Crear campaña</button>
+              </form>
             </div>
 
-            <form id="character-form" class="form">
-              <div class="row">
+            <div class="sidebar__section">
+              <div class="sidebar__title">🔍 Filtrar</div>
+              <form id="campaign-filters" class="form form--compact">
                 <label class="field">
-                  <span class="field__label">Nombre</span>
-                  <input name="name" placeholder="ej. Thia" required />
+                  <span class="field__label">Buscar</span>
+                  <input name="search" placeholder="Nombre o ambientación" />
                 </label>
-                <label class="field">
-                  <span class="field__label">Raza</span>
-                  <input name="race" placeholder="ej. Elfo" required />
-                </label>
-                <label class="field">
-                  <span class="field__label">Clase</span>
-                  <input name="characterClass" placeholder="ej. Mago" required />
-                </label>
-              </div>
-
-              <div class="row row--stats">
-                <label class="field field--mini">
-                  <span class="field__label">Nivel</span>
-                  <input name="level" type="number" value="1" min="1" />
-                </label>
-                <label class="field field--mini">
-                  <span class="field__label">CA</span>
-                  <input name="armorClass" type="number" value="10" min="0" />
-                </label>
-                <label class="field field--mini">
-                  <span class="field__label">PG</span>
-                  <input name="hitPoints" type="number" value="10" min="0" />
-                </label>
-                <label class="field field--mini">
-                  <span class="field__label">Comp.</span>
-                  <input name="proficiencyBonus" type="number" value="2" min="0" />
-                </label>
-              </div>
-
-              <div class="row row--stats">
-                <label class="field field--mini"><span class="field__label">FUE</span><input name="strength" type="number" value="10" min="1" max="30" /></label>
-                <label class="field field--mini"><span class="field__label">DES</span><input name="dexterity" type="number" value="10" min="1" max="30" /></label>
-                <label class="field field--mini"><span class="field__label">CON</span><input name="constitution" type="number" value="10" min="1" max="30" /></label>
-                <label class="field field--mini"><span class="field__label">INT</span><input name="intelligence" type="number" value="10" min="1" max="30" /></label>
-                <label class="field field--mini"><span class="field__label">SAB</span><input name="wisdom" type="number" value="10" min="1" max="30" /></label>
-                <label class="field field--mini"><span class="field__label">CAR</span><input name="charisma" type="number" value="10" min="1" max="30" /></label>
-              </div>
-
-              <div class="row row--stats">
-                <label class="field field--mini"><span class="field__label">Inic.</span><input name="initiative" type="number" value="0" min="-10" max="20" /></label>
-                <label class="field field--mini"><span class="field__label">Vel. (ft)</span><input name="speedFeet" type="number" value="30" min="0" max="120" /></label>
-                <label class="field field--mini"><span class="field__label">Tamaño</span><input name="size" value="Medium" /></label>
-                <label class="checkbox checkbox--right">
-                  <input type="checkbox" name="isNpc" />
-                  <span>NPC</span>
-                </label>
-              </div>
-
-              <button type="submit" class="btn btn--primary">Añadir personaje</button>
-              <div id="characters-loading" class="spinner hidden" aria-hidden="true"></div>
-              <p id="characters-error" class="notice notice--error hidden" role="alert"></p>
-            </form>
-
-            <ul id="character-list" class="list"></ul>
-          </div>
-
-          <div id="character-detail" class="card hidden">
-            <div class="card__header">
-              <div>
-                <h2 class="card__title">Ficha</h2>
-                <p class="card__subtitle"><strong id="character-title"></strong></p>
-              </div>
-              <button type="button" id="btn-back-characters" class="btn btn--ghost">Volver</button>
-            </div>
-
-            <div id="sheet" class="sheet"></div>
-
-            <div class="grid-2">
-              <div class="card card--inner">
-                <h3 class="card__title card__title--sm">Tirada rápida</h3>
-                <div class="row">
+                <div class="row row--2">
                   <label class="field">
-                    <span class="field__label">Expresión</span>
-                    <input id="dice-expression" value="1d20+3" />
+                    <span class="field__label">Orden</span>
+                    <select name="sortBy">
+                      <option value="name">Nombre</option>
+                      <option value="setting">Ambientación</option>
+                      <option value="createdAt">Creada</option>
+                      <option value="updatedAt">Actualizada</option>
+                    </select>
                   </label>
-                  <label class="field field--mini">
-                    <span class="field__label">Modo</span>
-                    <select id="d20-mode">
-                      <option value="0">Normal</option>
-                      <option value="1">Ventaja</option>
-                      <option value="2">Desventaja</option>
+                  <label class="field">
+                    <span class="field__label">Dir.</span>
+                    <select name="sortDir">
+                      <option value="asc">Asc ↑</option>
+                      <option value="desc">Desc ↓</option>
                     </select>
                   </label>
                 </div>
-                <button type="button" id="btn-roll" class="btn btn--primary">Tirar</button>
-                <p id="roll-result" class="notice notice--info hidden" role="status"></p>
-              </div>
-
-              <div class="card card--inner">
-                <h3 class="card__title card__title--sm">Consultar D&D 5e API</h3>
-                <div class="row">
-                  <label class="field">
-                    <span class="field__label">Hechizo</span>
-                    <input id="spell-name" placeholder="ej. fireball" />
-                  </label>
+                <div class="chip-row">
+                  <label class="checkbox"><input type="checkbox" name="isPublic" /><span>Solo públicas</span></label>
+                  <label class="checkbox"><input type="checkbox" name="isActive" /><span>Solo activas</span></label>
                 </div>
-                <button type="button" id="btn-spell" class="btn btn--ghost">Buscar</button>
-                <pre id="spell-result" class="pre hidden"></pre>
+                <button class="btn btn--ghost btn--block" type="submit">Aplicar filtros</button>
+              </form>
+              <div id="campaigns-loading" class="spinner hidden" aria-hidden="true"></div>
+              <p id="campaigns-error" class="notice notice--error hidden" role="alert"></p>
+              <ul id="campaign-list" class="entity-list"></ul>
+            </div>
+          </aside>
+
+          <!-- Content panel -->
+          <section class="content">
+
+            <!-- Empty state -->
+            <div id="empty-state" class="empty-state">
+              <span class="empty-state__icon" aria-hidden="true">🗺</span>
+              <h2>Elige una campaña</h2>
+              <p>Selecciona una de la lista o crea una nueva para empezar tu aventura.</p>
+            </div>
+
+            <!-- Campaign detail -->
+            <div id="campaign-detail" class="card hidden">
+              <div class="card__header">
+                <div>
+                  <h2 class="card__title" id="campaign-title"></h2>
+                  <div id="campaign-badges" class="badges"></div>
+                  <p id="campaign-desc" class="card__subtitle"></p>
+                </div>
+                <div class="btn-group">
+                  <button type="button" id="btn-edit-campaign"   class="btn btn--ghost btn--sm">✏ Editar</button>
+                  <button type="button" id="btn-delete-campaign" class="btn btn--danger btn--sm">🗑 Eliminar</button>
+                </div>
+              </div>
+
+              <!-- Edit form (hidden) -->
+              <form id="campaign-edit-form" class="form hidden">
+                <div class="row">
+                  <label class="field"><span class="field__label">Nombre</span><input name="name" required /></label>
+                  <label class="field"><span class="field__label">Ambientación</span><input name="setting" required /></label>
+                </div>
+                <label class="field"><span class="field__label">Descripción</span><textarea name="description" rows="2"></textarea></label>
+                <div class="chip-row">
+                  <label class="checkbox"><input type="checkbox" name="isPublic" /><span>Pública</span></label>
+                  <label class="checkbox"><input type="checkbox" name="isActive" /><span>Activa</span></label>
+                </div>
+                <div class="btn-group">
+                  <button type="submit" class="btn btn--primary">Guardar cambios</button>
+                  <button type="button" id="btn-cancel-campaign-edit" class="btn btn--ghost">Cancelar</button>
+                </div>
+              </form>
+
+              <hr class="divider" />
+
+              <!-- Characters header -->
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:.85rem">
+                <h3 class="section-title" style="margin:0">⚔ Personajes</h3>
+                <form id="character-filters" class="form form--inline hidden" style="margin:0">
+                  <input name="name"           placeholder="Nombre…"  class="input--sm" />
+                  <input name="race"           placeholder="Raza…"    class="input--sm" />
+                  <input name="characterClass" placeholder="Clase…"   class="input--sm" />
+                  <label class="checkbox"><input type="checkbox" name="isNpc" /><span>NPC</span></label>
+                  <button type="submit" class="btn btn--ghost btn--sm">Filtrar</button>
+                </form>
+              </div>
+
+              <!-- Add character (collapsible) -->
+              <form id="character-form" class="form" style="margin-bottom:.85rem">
+                <details class="collapse">
+                  <summary class="collapse__summary">➕ Añadir personaje</summary>
+                  <div class="collapse__body">
+                    <div class="row row--3">
+                      <label class="field"><span class="field__label">Nombre</span><input name="name" required /></label>
+                      <label class="field"><span class="field__label">Raza</span><input name="race" required /></label>
+                      <label class="field"><span class="field__label">Clase</span><input name="characterClass" required /></label>
+                    </div>
+                    <div class="row row--stats">
+                      <label class="field field--mini"><span class="field__label">Nivel</span><input name="level"           type="number" value="1"  min="1" /></label>
+                      <label class="field field--mini"><span class="field__label">CA</span>   <input name="armorClass"      type="number" value="10" min="0" /></label>
+                      <label class="field field--mini"><span class="field__label">PG</span>   <input name="hitPoints"       type="number" value="10" min="0" /></label>
+                      <label class="field field--mini"><span class="field__label">Comp.</span><input name="proficiencyBonus" type="number" value="2"  min="0" /></label>
+                      <label class="field field--mini"><span class="field__label">FUE</span>  <input name="strength"        type="number" value="10" min="1" max="30" /></label>
+                      <label class="field field--mini"><span class="field__label">DES</span>  <input name="dexterity"       type="number" value="10" min="1" max="30" /></label>
+                    </div>
+                    <label class="checkbox"><input type="checkbox" name="isNpc" /><span>Es NPC</span></label>
+                    <button type="submit" class="btn btn--primary">Crear personaje</button>
+                  </div>
+                </details>
+              </form>
+
+              <div id="characters-loading" class="spinner hidden"></div>
+              <p   id="characters-error"   class="notice notice--error hidden"></p>
+              <ul  id="character-list"     class="entity-list"></ul>
+            </div>
+
+            <!-- Character detail -->
+            <div id="character-detail" class="card hidden">
+              <div class="card__header">
+                <div>
+                  <h2 class="card__title" id="character-title"></h2>
+                  <p   id="character-meta"  class="card__subtitle"></p>
+                </div>
+                <div class="btn-group">
+                  <button type="button" id="btn-back-characters"  class="btn btn--ghost btn--sm">← Volver</button>
+                  <button type="button" id="btn-edit-character"   class="btn btn--ghost btn--sm">✏ Editar</button>
+                  <button type="button" id="btn-delete-character" class="btn btn--danger btn--sm">🗑</button>
+                </div>
+              </div>
+
+              <!-- Inner tabs -->
+              <div class="tabs tabs--inner" role="tablist">
+                <button type="button" class="tab active" data-char-tab="sheet">📋 Ficha</button>
+                <button type="button" class="tab"        data-char-tab="dice" >🎲 Dados</button>
+                <button type="button" class="tab"        data-char-tab="files">📎 Adjuntos</button>
+              </div>
+
+              <!-- Tab: Ficha -->
+              <div id="char-tab-sheet" class="char-panel">
+                <div id="sheet" class="sheet"></div>
+                <form id="character-edit-form" class="form hidden">
+                  <div class="row row--3">
+                    <label class="field"><span class="field__label">Nombre</span><input name="name" required /></label>
+                    <label class="field"><span class="field__label">Raza</span><input name="race" required /></label>
+                    <label class="field"><span class="field__label">Clase</span><input name="characterClass" required /></label>
+                  </div>
+                  <div class="row row--stats">
+                    <label class="field field--mini"><span class="field__label">Nivel</span><input name="level"           type="number" min="1" /></label>
+                    <label class="field field--mini"><span class="field__label">CA</span>   <input name="armorClass"      type="number" min="0" /></label>
+                    <label class="field field--mini"><span class="field__label">PG</span>   <input name="hitPoints"       type="number" min="0" /></label>
+                    <label class="field field--mini"><span class="field__label">Comp.</span><input name="proficiencyBonus" type="number" min="0" /></label>
+                    <label class="field field--mini"><span class="field__label">FUE</span>  <input name="strength"        type="number" min="1" max="30" /></label>
+                    <label class="field field--mini"><span class="field__label">DES</span>  <input name="dexterity"       type="number" min="1" max="30" /></label>
+                  </div>
+                  <label class="checkbox"><input type="checkbox" name="isNpc" /><span>Es NPC</span></label>
+                  <div class="btn-group">
+                    <button type="submit" class="btn btn--primary">Guardar ficha</button>
+                    <button type="button" id="btn-cancel-char-edit" class="btn btn--ghost">Cancelar</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Tab: Dados -->
+              <div id="char-tab-dice" class="char-panel hidden">
+                <div class="dice-panel">
+                  <div class="dice-quick" aria-label="Dados rápidos">
+                    <button type="button" class="dice-chip" data-expr="1d20"  >d20</button>
+                    <button type="button" class="dice-chip" data-expr="1d12"  >d12</button>
+                    <button type="button" class="dice-chip" data-expr="1d10"  >d10</button>
+                    <button type="button" class="dice-chip" data-expr="1d8"   >d8</button>
+                    <button type="button" class="dice-chip" data-expr="2d6"   >2d6</button>
+                    <button type="button" class="dice-chip" data-expr="1d6"   >d6</button>
+                    <button type="button" class="dice-chip" data-expr="1d4"   >d4</button>
+                    <button type="button" class="dice-chip" data-expr="1d20+5">1d20+5</button>
+                  </div>
+                  <div class="row">
+                    <label class="field flex-1">
+                      <span class="field__label">Expresión de dados</span>
+                      <input id="dice-expression" value="1d20" placeholder="ej. 2d6+3" />
+                    </label>
+                    <label class="field" style="min-width:120px">
+                      <span class="field__label">Modo d20</span>
+                      <select id="d20-mode">
+                        <option value="0">Normal</option>
+                        <option value="1">Ventaja</option>
+                        <option value="2">Desventaja</option>
+                      </select>
+                    </label>
+                  </div>
+                  <button type="button" id="btn-roll" class="btn btn--primary btn--dice btn--block">🎲 ¡Tirar dados!</button>
+                  <div id="roll-display" class="roll-display hidden">
+                    <div id="roll-total"  class="roll-display__total"></div>
+                    <div id="roll-detail" class="roll-display__detail"></div>
+                  </div>
+                </div>
+                <p class="section-title section-title--sm">Historial de tiradas</p>
+                <ul id="roll-history" class="timeline"></ul>
+              </div>
+
+              <!-- Tab: Adjuntos -->
+              <div id="char-tab-files" class="char-panel hidden">
+                <div class="upload-zone">
+                  <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                  <button type="button" id="btn-upload" class="btn btn--primary">⬆ Subir archivo</button>
+                  <span class="muted">Máx. 10 MB &nbsp;·&nbsp; JPG, PNG, WebP, PDF</span>
+                </div>
+                <ul id="attachment-list" class="entity-list"></ul>
               </div>
             </div>
 
-            <div class="card card--inner">
-              <h3 class="card__title card__title--sm">Adjuntos</h3>
-              <div class="row">
-                <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" />
-                <button type="button" id="btn-upload" class="btn btn--ghost">Subir</button>
-              </div>
-              <ul id="attachment-list" class="list"></ul>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
+
+      <!-- ── Vista: Explorar público ── -->
+      <div id="view-public" class="view hidden">
+        <div class="view-header">
+          <h2 class="view-header__title">🌐 Campañas públicas</h2>
+          <p class="view-header__desc">Explora aventuras compartidas por otros jugadores.</p>
+        </div>
+        <form id="public-filters" class="form form--inline card card--inner card--flat" style="margin-bottom:1.25rem">
+          <input name="search"  placeholder="Buscar…"          class="input--sm" />
+          <input name="setting" placeholder="Ambientación…"    class="input--sm" />
+          <button type="submit" class="btn btn--ghost btn--sm">Buscar</button>
+        </form>
+        <div id="public-loading" class="spinner hidden"></div>
+        <div id="public-campaigns" class="grid-cards"></div>
+        <div id="public-characters-wrap" class="hidden">
+          <button type="button" id="btn-back-public" class="btn btn--ghost" style="margin-bottom:1rem">← Campañas públicas</button>
+          <h3 id="public-campaign-title" class="section-title"></h3>
+          <ul id="public-character-list" class="entity-list"></ul>
+        </div>
+      </div>
+
+      <!-- ── Vista: Compendio ── -->
+      <div id="view-compendium" class="view hidden">
+        <div class="view-header">
+          <h2 class="view-header__title">📖 Compendio D&amp;D 5e</h2>
+          <p class="view-header__desc">Consulta hechizos y monstruos vía la API D&amp;D 5e.</p>
+        </div>
+        <div class="grid-2">
+          <div class="card card--inner">
+            <h3 class="card__title card__title--sm">🔮 Hechizos</h3>
+            <form id="spell-form" class="form form--inline" style="margin-top:.75rem">
+              <input name="name" placeholder="ej. fireball" required class="flex-1" />
+              <button type="submit" class="btn btn--primary">Buscar</button>
+            </form>
+            <div id="spell-card" class="dnd-card hidden"></div>
+          </div>
+          <div class="card card--inner">
+            <h3 class="card__title card__title--sm">🐉 Monstruos</h3>
+            <form id="monster-form" class="form form--inline" style="margin-top:.75rem">
+              <input name="name" placeholder="ej. goblin" required class="flex-1" />
+              <button type="submit" class="btn btn--primary">Buscar</button>
+            </form>
+            <div id="monster-card" class="dnd-card hidden"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Vista: Admin ── -->
+      <div id="view-admin" class="view hidden">
+        <div class="view-header">
+          <h2 class="view-header__title">⚙ Panel de administración</h2>
+          <p class="view-header__desc">Vista global del sistema (solo rol Admin).</p>
+        </div>
+        <div class="grid-2">
+          <div class="card card--inner">
+            <h3 class="card__title card__title--sm">📋 Todas las campañas</h3>
+            <div id="admin-campaigns-loading" class="spinner hidden"></div>
+            <div id="admin-campaigns" class="table-wrap"></div>
+          </div>
+          <div class="card card--inner">
+            <h3 class="card__title card__title--sm">👥 Usuarios</h3>
+            <div id="admin-users-loading" class="spinner hidden"></div>
+            <div id="admin-users" class="table-wrap"></div>
+          </div>
+        </div>
+      </div>
+
     </section>
   </main>
+
+  <!-- ═══ MODAL ═══ -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal__backdrop"></div>
+    <div class="modal__box">
+      <h3 id="modal-title" class="modal__title"></h3>
+      <p  id="modal-body"  class="modal__body"></p>
+      <div class="modal__actions">
+        <button type="button" id="modal-cancel"  class="btn btn--ghost">Cancelar</button>
+        <button type="button" id="modal-confirm" class="btn btn--danger">Confirmar</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
