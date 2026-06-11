@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RecuBackend.Api.Auth;
+using RecuBackend.Api.Cloudinary;
 using RecuBackend.Api.Data;
 using RecuBackend.Api.Repositories.Ef;
 using RecuBackend.Api.Repositories.Interfaces;
@@ -79,7 +80,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection(FileStorageSettings.SectionName));
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection(CloudinarySettings.SectionName));
 builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<ICloudinaryUploadService, CloudinaryUploadService>();
 
 builder.Services.Configure<Dnd5eApiSettings>(builder.Configuration.GetSection(Dnd5eApiSettings.SectionName));
 builder.Services.AddHttpClient<IDnd5eApiClient, Dnd5eApiClient>((sp, client) =>

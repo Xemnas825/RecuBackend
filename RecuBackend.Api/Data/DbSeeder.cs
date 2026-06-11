@@ -7,47 +7,48 @@ namespace RecuBackend.Api.Data;
 public static class DbSeeder
 {
     public static readonly Guid AdminUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    public static readonly Guid MasterUserId = Guid.Parse("33333333-3333-3333-3333-333333333333");
     public static readonly Guid PlayerUserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
     public static async Task SeedAsync(AppDbContext db, CancellationToken ct = default)
     {
-        if (await db.AppUsers.AnyAsync(ct))
-            return;
-
         var now = DateTime.UtcNow;
-        db.AppUsers.AddRange(
-            new AppUser
+
+        await EnsureDemoUserAsync(db, AdminUserId, "admin", "Administrador", "Admin123!", AppRoles.Admin, now, ct);
+        await EnsureDemoUserAsync(db, PlayerUserId, "player", "Jugador demo", "Player123!", AppRoles.User, now, ct);
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static async Task EnsureDemoUserAsync(
+        AppDbContext db,
+        Guid id,
+        string username,
+        string displayName,
+        string password,
+        string role,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var user = await db.AppUsers.FirstOrDefaultAsync(u => u.Id == id || u.Username == username, ct);
+        if (user is null)
+        {
+            db.AppUsers.Add(new AppUser
             {
-                Id = AdminUserId,
-                Username = "admin",
-                DisplayName = "Administrador",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
-                Role = AppRoles.Admin,
-                IsActive = true,
-                CreatedAtUtc = now
-            },
-            new AppUser
-            {
-                Id = MasterUserId,
-                Username = "master",
-                DisplayName = "Dungeon Master",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Master123!"),
-                Role = AppRoles.Master,
-                IsActive = true,
-                CreatedAtUtc = now
-            },
-            new AppUser
-            {
-                Id = PlayerUserId,
-                Username = "player",
-                DisplayName = "Jugador",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Player123!"),
-                Role = AppRoles.User,
+                Id = id,
+                Username = username,
+                DisplayName = displayName,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                Role = role,
                 IsActive = true,
                 CreatedAtUtc = now
             });
+            return;
+        }
 
-        await db.SaveChangesAsync(ct);
+        user.Username = username;
+        user.DisplayName = displayName;
+        user.Role = role;
+        user.IsActive = true;
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
     }
 }

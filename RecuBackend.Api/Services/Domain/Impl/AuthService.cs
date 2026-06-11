@@ -14,8 +14,12 @@ public sealed class AuthService(IUserRepository users, TokenService tokenService
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return (null, "Usuario o contraseña incorrectos.", StatusCodes.Status401Unauthorized);
 
-        var (token, expires) = tokenService.CreateToken(user);
-        return (BuildLoginResponse(token, user, expires), null, StatusCodes.Status200OK);
+        var (effectiveRole, roleError) = SessionRoleResolver.ResolveForLogin(user, request.SessionRole);
+        if (effectiveRole is null)
+            return (null, roleError, StatusCodes.Status400BadRequest);
+
+        var (token, expires) = tokenService.CreateToken(user, effectiveRole);
+        return (BuildLoginResponse(token, user, effectiveRole, expires), null, StatusCodes.Status200OK);
     }
 
     public async Task<(LoginResponse? Response, string? ErrorMessage, int StatusCode)> RegisterAsync(RegisterRequest request, CancellationToken ct)
@@ -50,11 +54,14 @@ public sealed class AuthService(IUserRepository users, TokenService tokenService
         users.Add(user);
         await users.SaveChangesAsync(ct);
 
-        var (token, expires) = tokenService.CreateToken(user);
-        return (BuildLoginResponse(token, user, expires), null, StatusCodes.Status200OK);
+        var (effectiveRole, roleError) = SessionRoleResolver.ResolveForLogin(user, request.SessionRole ?? AppRoles.User);
+        if (effectiveRole is null)
+            return (null, roleError, StatusCodes.Status400BadRequest);
+
+        var (token, expires) = tokenService.CreateToken(user, effectiveRole);
+        return (BuildLoginResponse(token, user, effectiveRole, expires), null, StatusCodes.Status200OK);
     }
 
-    private static LoginResponse BuildLoginResponse(string token, AppUser user, DateTime expires) =>
-        new(token, user.Id, user.Username, user.Role, AppRoles.IsAdmin(user.Role), AppRoles.IsMaster(user.Role), expires);
+    private static LoginResponse BuildLoginResponse(string token, AppUser user, string effectiveRole, DateTime expires) =>
+        new(token, user.Id, user.Username, effectiveRole, AppRoles.IsAdmin(effectiveRole), AppRoles.IsMaster(effectiveRole), expires);
 }
-

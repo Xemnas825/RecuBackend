@@ -32,5 +32,17 @@ public interface ICampaignRepository
         CancellationToken ct);
 
     Task<List<Campaign>> ListAllAsync(CancellationToken ct);
+
+    Task<List<Campaign>> ListJoinedByUserAsync(
+        Guid userId,
+        string? search,
+        string? setting,
+        string? sortBy,
+        string? sortDir,
+        CancellationToken ct);
+
+    Task<Campaign?> GetAccessibleForPlayerAsync(Guid campaignId, Guid userId, CancellationToken ct);
+
+    Task<bool> IsPublicActiveAsync(Guid campaignId, CancellationToken ct);
 }
 

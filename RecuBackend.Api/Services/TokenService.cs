@@ -12,14 +12,15 @@ public sealed class TokenService(IOptions<JwtSettings> jwtOptions)
 {
     private readonly JwtSettings _settings = jwtOptions.Value;
 
-    public (string Token, DateTime ExpiresAtUtc) CreateToken(AppUser user)
+    public (string Token, DateTime ExpiresAtUtc) CreateToken(AppUser user, string? sessionRole = null)
     {
+        var role = sessionRole ?? user.Role;
         var expires = DateTime.UtcNow.AddMinutes(_settings.ExpirationMinutes);
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Role, role)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));

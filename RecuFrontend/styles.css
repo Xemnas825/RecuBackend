@@ -575,6 +575,39 @@ input:focus, select:focus, textarea:focus {
 
 .btn-group--wrap { flex-wrap: wrap; gap: .25rem; }
 
+.role-picker {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .75rem;
+  margin: 0;
+}
+.role-picker__options {
+  display: grid;
+  gap: .5rem;
+  margin-top: .5rem;
+}
+.role-picker__option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .15rem .6rem;
+  align-items: start;
+  padding: .55rem .65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.role-picker__option:has(input:checked) {
+  border-color: var(--border-gold);
+  background: var(--gold-dim);
+}
+.role-picker__option input { margin-top: .2rem; accent-color: var(--gold); }
+.role-picker__option small {
+  grid-column: 2;
+  font-size: .78rem;
+  color: var(--text-3);
+}
+
 /* ─── DIVIDER / SECTION TITLE ──────────────── */
 .divider       { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
 .section-title { margin: 0 0 .75rem; font-size: 1rem; font-weight: 700; }

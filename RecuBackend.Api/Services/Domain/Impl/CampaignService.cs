@@ -8,7 +8,8 @@ namespace RecuBackend.Api.Services.Domain.Impl;
 public sealed class CampaignService(ICampaignRepository repo) : ICampaignService
 {
     public async Task<List<CampaignResponse>> ListAsync(
-        Guid ownerId,
+        Guid userId,
+        bool isMaster,
         string? search,
         string? setting,
         bool? isActive,
@@ -17,14 +18,34 @@ public sealed class CampaignService(ICampaignRepository repo) : ICampaignService
         string? sortDir,
         CancellationToken ct)
     {
-        var campaigns = await repo.ListByOwnerAsync(ownerId, search, setting, isActive, isPublic, sortBy, sortDir, ct);
+        var campaigns = isMaster
+            ? await repo.ListByOwnerAsync(userId, search, setting, isActive, isPublic, sortBy, sortDir, ct)
+            : await repo.ListJoinedByUserAsync(userId, search, setting, sortBy, sortDir, ct);
+
         return campaigns.Select(ToResponse).ToList();
     }
 
-    public async Task<CampaignResponse?> GetByIdAsync(Guid id, Guid ownerId, CancellationToken ct)
+    public async Task<List<CampaignResponse>> ExplorePublicAsync(
+        string? search,
+        string? setting,
+        string? sortBy,
+        string? sortDir,
+        CancellationToken ct)
     {
-        var campaign = await repo.GetByIdAsync(id, ownerId, ct);
-        return campaign is null ? null : ToResponse(campaign);
+        var campaigns = await repo.ListPublicAsync(search, setting, sortBy, sortDir, ct);
+        return campaigns.Select(ToResponse).ToList();
+    }
+
+    public async Task<CampaignResponse?> GetByIdAsync(Guid id, Guid userId, bool isMaster, CancellationToken ct)
+    {
+        if (isMaster)
+        {
+            var owned = await repo.GetByIdAsync(id, userId, ct);
+            return owned is null ? null : ToResponse(owned);
+        }
+
+        var joined = await repo.GetAccessibleForPlayerAsync(id, userId, ct);
+        return joined is null ? null : ToResponse(joined);
     }
 
     public async Task<CampaignResponse> CreateAsync(Guid ownerId, CreateCampaignRequest request, CancellationToken ct)
@@ -76,4 +97,3 @@ public sealed class CampaignService(ICampaignRepository repo) : ICampaignService
     private static CampaignResponse ToResponse(Campaign c) => new(
         c.Id, c.Name, c.Setting, c.Description, c.IsPublic, c.IsActive, c.CreatedAtUtc, c.UpdatedAtUtc);
 }
-

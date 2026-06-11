@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ficha de personaje — Ejemplo DnD 5e</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Georgia, serif; max-width: 800px; margin: 2rem auto; padding: 1rem; color: #1a1a1a; }
+    h1 { font-size: 1.4rem; border-bottom: 2px solid #333; padding-bottom: .4rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .box { border: 1px solid #444; padding: .75rem; border-radius: 4px; }
+    .box h2 { margin: 0 0 .5rem; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: #555; }
+    .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: .5rem; text-align: center; }
+    .stat strong { display: block; font-size: 1.4rem; }
+    .note { margin-top: 1.5rem; font-size: .85rem; color: #666; border-top: 1px dashed #aaa; padding-top: 1rem; }
+    @media print { body { margin: 0; } .note { display: none; } }
+  </style>
+</head>
+<body>
+  <h1>⚔ Ficha de personaje — Ejemplo para pruebas</h1>
+
+  <div class="grid">
+    <div class="box">
+      <h2>Personaje</h2>
+      <p><strong>Nombre:</strong> Thorin Escudo de Roble</p>
+      <p><strong>Raza:</strong> Enano &nbsp;·&nbsp; <strong>Clase:</strong> Guerrero</p>
+      <p><strong>Nivel:</strong> 5 &nbsp;·&nbsp; <strong>Trasfondo:</strong> Soldado</p>
+      <p><strong>Alineamiento:</strong> Legal Bueno</p>
+    </div>
+    <div class="box">
+      <h2>Combate</h2>
+      <p><strong>CA:</strong> 18 &nbsp;·&nbsp; <strong>PG:</strong> 52 / 52</p>
+      <p><strong>Iniciativa:</strong> +1 &nbsp;·&nbsp; <strong>Velocidad:</strong> 7,5 m</p>
+      <p><strong>Competencia:</strong> +3</p>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>Atributos</h2>
+    <div class="stats">
+      <div><strong>16</strong>FUE (+3)</div>
+      <div><strong>12</strong>DES (+1)</div>
+      <div><strong>16</strong>CON (+3)</div>
+      <div><strong>10</strong>INT (+0)</div>
+      <div><strong>13</strong>SAB (+1)</div>
+      <div><strong>8</strong>CAR (−1)</div>
+    </div>
+  </div>
+
+  <div class="box" style="margin-top:1rem">
+    <h2>Notas</h2>
+    <p>Guerrero enano veterano de las Montañas Azules. Especialista en defensa con escudo y hacha.</p>
+  </div>
+
+  <p class="note">
+  <strong>Cómo usar este archivo:</strong> Abre en el navegador → Imprimir → Guardar como PDF.
+  Luego súbelo en la pestaña <em>Fichas</em> del personaje (campo <code>file</code>, máx. 10 MB).
+  También puedes usar directamente <code>samples/ficha-ejemplo.pdf</code> del repositorio.
+  </p>
+</body>
+</html>

@@ -93,8 +93,16 @@ function isMaster() {
   return state.user?.isMaster === true || state.user?.role === 'Master';
 }
 
+function isPlayer() {
+  return state.user && !isAdmin() && !isMaster();
+}
+
 function canManageGame() {
   return isMaster();
+}
+
+function canManageOwnCharacters() {
+  return isMaster() || isPlayer();
 }
 
 function roleLabel(role) {
@@ -111,12 +119,42 @@ function roleBadgeHtml() {
 
 function applyRolePermissions() {
   const master = canManageGame();
+  const player = isPlayer();
+  const chars = canManageOwnCharacters();
   show($('campaign-create-section'), master);
   show($('btn-edit-campaign'), master);
   show($('btn-delete-campaign'), master);
-  show($('character-form'), master);
-  show($('btn-edit-character'), master);
-  show($('btn-delete-character'), master);
+  show($('player-explore-section'), player);
+  show($('character-form'), chars);
+  show($('btn-edit-character'), chars);
+  show($('btn-delete-character'), chars);
+  setText($('campaign-list-title'), player ? '📋 Campañas con mis personajes' : '🔍 Mis campañas');
+  const empty = $('empty-state');
+  if (empty) {
+    const h2 = empty.querySelector('h2');
+    const p = empty.querySelector('p');
+    if (h2) setText(h2, player ? 'Únete a una campaña pública' : 'Elige una campaña');
+    if (p) {
+      setText(p, player
+        ? 'Explora las campañas públicas de la izquierda y crea tu personaje para unirte.'
+        : 'Selecciona una de la lista o crea una nueva para empezar tu aventura.');
+    }
+  }
+  document.querySelectorAll('#character-form [name="isNpc"], #character-edit-form [name="isNpc"]').forEach((el) => {
+    const label = el.closest('.checkbox');
+    if (label) {
+      show(label, master);
+      if (!master) el.checked = false;
+    }
+  });
+  document.querySelectorAll('#character-filters [name="isNpc"]').forEach((el) => {
+    const label = el.closest('.checkbox');
+    if (label) {
+      show(label, master);
+      if (!master) el.checked = false;
+    }
+  });
+  if (player) loadExploreCampaigns();
 }
 
 function showApp(loggedIn) {
@@ -136,18 +174,23 @@ function showApp(loggedIn) {
   }
 }
 
-async function login(username, password) {
+function readSessionRole(form) {
+  const selected = form.querySelector('input[name="sessionRole"]:checked');
+  return selected?.value || 'User';
+}
+
+async function login(username, password, sessionRole) {
   const data = await api('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, sessionRole }),
   });
   saveSession(data);
 }
 
-async function register(username, password, displayName) {
+async function register(username, password, displayName, sessionRole) {
   const data = await api('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ username, password, displayName }),
+    body: JSON.stringify({ username, password, displayName, sessionRole }),
   });
   saveSession(data);
 }
@@ -204,7 +247,10 @@ function switchView(view) {
   const el = $(`view-${view}`);
   if (el) el.classList.remove('hidden');
 
-  if (view === 'campaigns') loadCampaigns();
+  if (view === 'campaigns') {
+    loadCampaigns();
+    if (isPlayer()) loadExploreCampaigns();
+  }
   if (view === 'public') loadPublicCampaigns();
   if (view === 'admin' && isAdmin()) loadAdmin();
 }
@@ -230,6 +276,38 @@ function closeModal(result) {
 
 // ─── Campaigns ──────────────────────────────────────────────
 
+async function loadExploreCampaigns() {
+  if (!isPlayer()) return;
+  const list = $('explore-list');
+  const loading = $('explore-loading');
+  if (!list) return;
+  show(loading, true);
+  list.innerHTML = '';
+  try {
+    const campaigns = unwrap(await api('/api/campaigns/explore?sortBy=name&sortDir=asc'));
+    if (!campaigns.length) {
+      list.innerHTML = '<li class="empty-item">No hay campañas públicas activas.</li>';
+      return;
+    }
+    campaigns.forEach((c) => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">
+          <div class="entity-card__title">${esc(c.name)}</div>
+          <span class="badge badge--public">Unirse</span>
+        </div>
+        <div class="entity-card__meta">${esc(c.setting)}</div>
+      `;
+      li.onclick = () => openCampaign(c.id);
+      list.appendChild(li);
+    });
+  } catch (e) {
+    list.innerHTML = `<li class="empty-item">${esc(e.message)}</li>`;
+  } finally {
+    show(loading, false);
+  }
+}
+
 async function loadCampaigns() {
   const list = $('campaign-list');
   const loading = $('campaigns-loading');
@@ -251,7 +329,9 @@ async function loadCampaigns() {
   try {
     const campaigns = unwrap(await api(`/api/campaigns${query}`));
     if (!campaigns.length) {
-      list.innerHTML = '<li class="empty-item">No hay campañas. Crea la primera arriba.</li>';
+      list.innerHTML = isPlayer()
+        ? '<li class="empty-item">Aún no tienes personajes en ninguna campaña.</li>'
+        : '<li class="empty-item">No hay campañas. Crea la primera arriba.</li>';
       return;
     }
     campaigns.forEach((c) => {
@@ -285,17 +365,29 @@ async function openCampaign(id) {
   show($('empty-state'), false);
   show($('character-detail'), false);
   show($('campaign-detail'), true);
-  show($('character-filters'), true);
+  show($('character-filters'), isMaster());
   show($('campaign-edit-form'), false);
 
   try {
     const c = await api(`/api/campaigns/${id}`);
     state.campaign = c;
     renderCampaignDetail(c);
+    applyRolePermissions();
+    show($('player-join-hint'), isPlayer() && c.isPublic && c.isActive);
+    if (isPlayer()) {
+      const details = $('character-form')?.querySelector('details');
+      if (details) details.open = true;
+    }
     loadCharacters();
     loadCampaigns();
+    if (isPlayer()) loadExploreCampaigns();
   } catch (e) {
     toast(e.message);
+    state.campaignId = null;
+    state.campaign = null;
+    show($('campaign-detail'), false);
+    show($('player-join-hint'), false);
+    show($('empty-state'), true);
   }
 }
 
@@ -572,12 +664,17 @@ async function loadAttachments() {
       const size = formatBytes(a.sizeBytes);
       let thumb = '';
       if (a.isImage) {
-        try {
-          const blob = await apiBlob(`/api/attachments/${a.id}`);
-          const url = URL.createObjectURL(blob);
-          thumb = `<img class="attachment-thumb" src="${url}" alt="" />`;
-        } catch {
-          thumb = '<div class="attachment-thumb">🖼</div>';
+        const imgSrc = a.secureUrl || null;
+        if (imgSrc) {
+          thumb = `<img class="attachment-thumb" src="${escAttr(imgSrc)}" alt="" />`;
+        } else {
+          try {
+            const blob = await apiBlob(`/api/attachments/${a.id}`);
+            const url = URL.createObjectURL(blob);
+            thumb = `<img class="attachment-thumb" src="${url}" alt="" />`;
+          } catch {
+            thumb = '<div class="attachment-thumb">🖼</div>';
+          }
         }
       } else {
         thumb = '<div class="attachment-thumb">📄</div>';
@@ -595,7 +692,7 @@ async function loadAttachments() {
       `;
       li.querySelector('[data-dl]')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        downloadFile(a.id, a.fileName);
+        downloadFile(a.id, a.fileName, a.secureUrl);
       });
       li.querySelector('[data-del]')?.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -616,8 +713,12 @@ async function loadAttachments() {
   }
 }
 
-async function downloadFile(id, fileName) {
+async function downloadFile(id, fileName, secureUrl) {
   try {
+    if (secureUrl) {
+      window.open(secureUrl, '_blank', 'noopener');
+      return;
+    }
     const blob = await apiBlob(`/api/attachments/${id}`);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -655,8 +756,12 @@ async function loadPublicCampaigns() {
     campaigns.forEach((c) => {
       const card = document.createElement('div');
       card.className = 'public-card';
+      const joinLabel = state.token && isPlayer() ? '<span class="badge badge--public">Unirse →</span>' : '';
       card.innerHTML = `
-        <h4>${esc(c.name)}</h4>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+          <h4 style="margin:0">${esc(c.name)}</h4>
+          ${joinLabel}
+        </div>
         <p>${esc(c.setting)}</p>
         <p class="muted" style="margin-top:0.5rem">${esc(c.description || 'Sin descripción')}</p>
       `;
@@ -671,6 +776,13 @@ async function loadPublicCampaigns() {
 }
 
 async function openPublicCampaign(c) {
+  if (state.token && isPlayer()) {
+    switchView('campaigns');
+    await openCampaign(c.id);
+    toast('Crea tu personaje para unirte a la partida');
+    return;
+  }
+
   state.publicCampaignId = c.id;
   show($('public-campaigns'), false);
   show($('public-characters-wrap'), true);
@@ -942,7 +1054,7 @@ $('login-form').onsubmit = async (e) => {
   show(errEl, false);
   try {
     const fd = new FormData(e.target);
-    await login(fd.get('username'), fd.get('password'));
+    await login(fd.get('username'), fd.get('password'), readSessionRole(e.target));
     toast('¡Bienvenido!');
   } catch (err) {
     setText(errEl, err.message);
@@ -957,7 +1069,7 @@ $('register-form').onsubmit = async (e) => {
   show(errEl, false);
   try {
     const fd = new FormData(e.target);
-    await register(fd.get('username'), fd.get('password'), fd.get('displayName'));
+    await register(fd.get('username'), fd.get('password'), fd.get('displayName'), readSessionRole(e.target));
     toast('Cuenta creada');
   } catch (err) {
     setText(errEl, err.message);
@@ -1073,6 +1185,8 @@ $('character-form').onsubmit = async (e) => {
     if (details) details.open = false;
     toast('Personaje creado');
     loadCharacters();
+    loadCampaigns();
+    if (isPlayer()) loadExploreCampaigns();
   } catch (err) {
     toast(err.message);
   }

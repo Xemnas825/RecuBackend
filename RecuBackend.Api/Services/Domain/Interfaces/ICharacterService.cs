@@ -4,9 +4,10 @@ namespace RecuBackend.Api.Services.Domain.Interfaces;
 
 public interface ICharacterService
 {
-    Task<List<CharacterResponse>?> ListAsync(
+    Task<(List<CharacterResponse>? Items, string? ErrorMessage)> ListAsync(
         Guid campaignId,
-        Guid ownerId,
+        Guid userId,
+        bool isMaster,
         string? name,
         string? race,
         string? characterClass,
@@ -15,12 +16,14 @@ public interface ICharacterService
         string? sortDir,
         CancellationToken ct);
 
-    Task<CharacterResponse?> GetByIdAsync(Guid campaignId, Guid id, Guid ownerId, CancellationToken ct);
+    Task<CharacterResponse?> GetByIdAsync(Guid campaignId, Guid id, Guid userId, bool isMaster, CancellationToken ct);
 
-    Task<CharacterResponse?> CreateAsync(Guid campaignId, Guid ownerId, CreateCharacterRequest request, CancellationToken ct);
+    Task<(CharacterResponse? Character, string? ErrorMessage)> CreateAsync(
+        Guid campaignId, Guid userId, bool isMaster, CreateCharacterRequest request, CancellationToken ct);
 
-    Task<CharacterResponse?> UpdateAsync(Guid campaignId, Guid id, Guid ownerId, UpdateCharacterRequest request, CancellationToken ct);
+    Task<(CharacterResponse? Character, string? ErrorMessage)> UpdateAsync(
+        Guid campaignId, Guid id, Guid userId, bool isMaster, UpdateCharacterRequest request, CancellationToken ct);
 
-    Task<bool> DeleteAsync(Guid campaignId, Guid id, Guid ownerId, CancellationToken ct);
+    Task<(bool Deleted, string? ErrorMessage)> DeleteAsync(
+        Guid campaignId, Guid id, Guid userId, bool isMaster, CancellationToken ct);
 }
-

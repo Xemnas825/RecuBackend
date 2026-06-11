@@ -11,10 +11,6 @@ namespace RecuBackend.Api.Controllers;
 [Route("api/campaigns/{campaignId:guid}/characters")]
 public sealed class CharactersController(ICharacterService characters, IUserContext userContext) : ApiControllerBase
 {
-    /// <summary>
-    /// Filtros: name, race, characterClass, isNpc.
-    /// Orden: sortBy=name|level|race|class, sortDir=asc|desc.
-    /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CharacterResponse>>> GetAll(
         Guid campaignId,
@@ -26,49 +22,54 @@ public sealed class CharactersController(ICharacterService characters, IUserCont
         [FromQuery] string? sortDir,
         CancellationToken ct)
     {
-        if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
-        var items = await characters.ListAsync(campaignId, ownerId, name, race, characterClass, isNpc, sortBy, sortDir, ct);
+        if (!TryGetUserId(userContext, out var userId, out var authError)) return authError;
+
+        var (items, _) = await characters.ListAsync(
+            campaignId, userId, userContext.IsMaster, name, race, characterClass, isNpc, sortBy, sortDir, ct);
         return items is null ? NotFound() : Ok(items);
     }
 
     [HttpGet("{id:guid}", Name = "GetCharacter")]
     public async Task<ActionResult<CharacterResponse>> GetById(Guid campaignId, Guid id, CancellationToken ct)
     {
-        if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
+        if (!TryGetUserId(userContext, out var userId, out var authError)) return authError;
 
-        var character = await characters.GetByIdAsync(campaignId, id, ownerId, ct);
+        var character = await characters.GetByIdAsync(campaignId, id, userId, userContext.IsMaster, ct);
         return character is null ? NotFound() : Ok(character);
     }
 
-    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpPost]
     public async Task<ActionResult<CharacterResponse>> Create(
         Guid campaignId, CreateCharacterRequest request, CancellationToken ct)
     {
-        if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
-        var created = await characters.CreateAsync(campaignId, ownerId, request, ct);
-        if (created is null) return NotFound();
+        if (!TryGetUserId(userContext, out var userId, out var authError)) return authError;
+
+        var (created, error) = await characters.CreateAsync(campaignId, userId, userContext.IsMaster, request, ct);
+        if (error is not null) return BadRequest(new { message = error });
+        if (created is null)
+            return NotFound(new { message = "Campaña no encontrada o sin permiso para añadir personajes." });
+
         return CreatedAtRoute("GetCharacter", new { campaignId, id = created.Id }, created);
     }
 
-    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<CharacterResponse>> Update(
         Guid campaignId, Guid id, UpdateCharacterRequest request, CancellationToken ct)
     {
-        if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
+        if (!TryGetUserId(userContext, out var userId, out var authError)) return authError;
 
-        var updated = await characters.UpdateAsync(campaignId, id, ownerId, request, ct);
+        var (updated, error) = await characters.UpdateAsync(campaignId, id, userId, userContext.IsMaster, request, ct);
+        if (error is not null) return BadRequest(new { message = error });
         return updated is null ? NotFound() : Ok(updated);
     }
 
-    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid campaignId, Guid id, CancellationToken ct)
     {
-        if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
+        if (!TryGetUserId(userContext, out var userId, out var authError)) return authError;
 
-        var deleted = await characters.DeleteAsync(campaignId, id, ownerId, ct);
+        var (deleted, error) = await characters.DeleteAsync(campaignId, id, userId, userContext.IsMaster, ct);
+        if (error is not null) return BadRequest(new { message = error });
         return deleted ? NoContent() : NotFound();
     }
 }

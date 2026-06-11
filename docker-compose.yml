@@ -26,6 +26,9 @@ services:
       ConnectionStrings__AppDb: "Host=db;Port=5432;Database=${POSTGRES_DB:-recubackend};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}"
       Jwt__Secret: ${JWT_SECRET:-RecuBackend-DnD-Super-Secret-Key-Min-32-Chars!}
       FileStorage__RootPath: /app/uploads
+      CloudinarySettings__CloudName: ${CLOUDINARY_CLOUD_NAME:-}
+      CloudinarySettings__ApiKey: ${CLOUDINARY_API_KEY:-}
+      CloudinarySettings__ApiSecret: ${CLOUDINARY_API_SECRET:-}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:

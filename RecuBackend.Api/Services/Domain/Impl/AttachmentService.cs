@@ -1,15 +1,22 @@
+using RecuBackend.Api.Cloudinary;
 using RecuBackend.Api.Dtos;
 using RecuBackend.Api.Models;
 using RecuBackend.Api.Repositories.Interfaces;
 using RecuBackend.Api.Services.Domain.Interfaces;
+using RecuBackend.Api.Utils;
+using Microsoft.Extensions.Options;
 
 namespace RecuBackend.Api.Services.Domain.Impl;
 
 public sealed class AttachmentService(
     ICharacterRepository characters,
     IAttachmentRepository attachments,
-    IFileStorageService fileStorage) : IAttachmentService
+    ICloudinaryUploadService cloudinary,
+    IFileStorageService fileStorage,
+    IOptions<FileStorageSettings> fileStorageSettings) : IAttachmentService
 {
+    private readonly FileStorageSettings _settings = fileStorageSettings.Value;
+
     public async Task<List<FileAttachmentResponse>?> ListAsync(Guid characterId, Guid ownerId, CancellationToken ct)
     {
         var owns = await characters.ExistsForOwnerAsync(characterId, ownerId, ct);
@@ -38,20 +45,31 @@ public sealed class AttachmentService(
 
         try
         {
-            fileStorage.ValidateUpload(fileName, contentType, file.Length);
+            FileValidationHelper.ValidateUpload(_settings, fileName, contentType, file.Length);
         }
         catch (ArgumentException ex)
         {
             return (null, ex.Message, false);
         }
+        catch (InvalidOperationException ex)
+        {
+            return (null, ex.Message, false);
+        }
 
         var attachmentId = Guid.NewGuid();
-        var ext = Path.GetExtension(fileName);
-        var relativePath = $"{ownerId}/{characterId}/{attachmentId}{ext}";
+        var publicId = $"recubackend/attachments/{attachmentId}";
+        var isImage = FileValidationHelper.IsImageContentType(contentType);
 
-        await using (var stream = file.OpenReadStream())
+        CloudinaryUploadResult upload;
+        try
         {
-            await fileStorage.SaveAsync(stream, relativePath, ct);
+            upload = isImage
+                ? await cloudinary.UploadImageAsync(file, publicId, ct)
+                : await cloudinary.UploadPdfAsync(file, publicId, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (null, ex.Message, false);
         }
 
         var attachment = new FileAttachment
@@ -62,8 +80,10 @@ public sealed class AttachmentService(
             FileName = fileName,
             ContentType = contentType,
             SizeBytes = file.Length,
-            StoragePath = relativePath,
-            IsImage = LocalFileStorageService.IsImageContentType(contentType),
+            StoragePath = upload.SecureUrl,
+            PublicId = upload.PublicId,
+            ResourceType = upload.ResourceType,
+            IsImage = isImage,
             UploadedAtUtc = DateTime.UtcNow
         };
 
@@ -82,13 +102,31 @@ public sealed class AttachmentService(
         var attachment = await attachments.GetByIdAsync(characterId, attachmentId, ownerId, ct);
         if (attachment is null) return (false, true);
 
-        await fileStorage.DeleteAsync(attachment.StoragePath, ct);
+        if (!string.IsNullOrWhiteSpace(attachment.PublicId))
+        {
+            await cloudinary.DeleteAsync(attachment.PublicId, attachment.ResourceType ?? "image", ct);
+        }
+        else if (!IsRemoteUrl(attachment.StoragePath))
+        {
+            await fileStorage.DeleteAsync(attachment.StoragePath, ct);
+        }
+
         attachments.Remove(attachment);
         await attachments.SaveChangesAsync(ct);
         return (true, false);
     }
 
     private static FileAttachmentResponse ToResponse(FileAttachment a) => new(
-        a.Id, a.CharacterId, a.FileName, a.ContentType, a.SizeBytes, a.IsImage, a.UploadedAtUtc);
-}
+        a.Id,
+        a.CharacterId,
+        a.FileName,
+        a.ContentType,
+        a.SizeBytes,
+        a.IsImage,
+        IsRemoteUrl(a.StoragePath) ? a.StoragePath : null,
+        a.UploadedAtUtc);
 
+    private static bool IsRemoteUrl(string path) =>
+        path.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
+}

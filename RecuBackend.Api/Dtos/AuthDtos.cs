@@ -1,11 +1,12 @@
 namespace RecuBackend.Api.Dtos;
 
-public sealed record LoginRequest(string Username, string Password);
+public sealed record LoginRequest(string Username, string Password, string? SessionRole);
 
 public sealed record RegisterRequest(
     string Username,
     string Password,
-    string DisplayName);
+    string DisplayName,
+    string? SessionRole);
 
 public sealed record LoginResponse(
     string AccessToken,

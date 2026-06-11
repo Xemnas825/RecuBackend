@@ -9,6 +9,8 @@ public sealed class FileAttachment
     public string ContentType { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
     public string StoragePath { get; set; } = string.Empty;
+    public string? PublicId { get; set; }
+    public string? ResourceType { get; set; }
     public bool IsImage { get; set; }
     public DateTime UploadedAtUtc { get; set; }
 

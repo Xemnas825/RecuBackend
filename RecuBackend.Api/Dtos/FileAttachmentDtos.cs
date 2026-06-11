@@ -7,4 +7,5 @@ public sealed record FileAttachmentResponse(
     string ContentType,
     long SizeBytes,
     bool IsImage,
+    string? SecureUrl,
     DateTime UploadedAtUtc);

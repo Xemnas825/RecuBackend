@@ -56,5 +56,32 @@ public sealed class EfCharacterRepository(AppDbContext db) : ICharacterRepositor
             .ApplyCharacterFilters(name, race, characterClass: null, isNpc: false)
             .ApplyCharacterSort(sortBy, sortDir)
             .ToListAsync(ct);
+
+    public Task<List<Character>> ListAllInOwnedCampaignAsync(
+        Guid campaignId,
+        Guid campaignOwnerId,
+        string? name,
+        string? race,
+        string? characterClass,
+        bool? isNpc,
+        string? sortBy,
+        string? sortDir,
+        CancellationToken ct) =>
+        db.Characters
+            .AsNoTracking()
+            .Where(ch => ch.CampaignId == campaignId && ch.Campaign.OwnerUserId == campaignOwnerId)
+            .ApplyCharacterFilters(name, race, characterClass, isNpc)
+            .ApplyCharacterSort(sortBy, sortDir)
+            .ToListAsync(ct);
+
+    public Task<Character?> GetByIdInOwnedCampaignAsync(Guid campaignId, Guid id, Guid campaignOwnerId, CancellationToken ct) =>
+        db.Characters
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                ch => ch.Id == id && ch.CampaignId == campaignId && ch.Campaign.OwnerUserId == campaignOwnerId, ct);
+
+    public Task<Character?> GetTrackedByIdInOwnedCampaignAsync(Guid campaignId, Guid id, Guid campaignOwnerId, CancellationToken ct) =>
+        db.Characters.FirstOrDefaultAsync(
+            ch => ch.Id == id && ch.CampaignId == campaignId && ch.Campaign.OwnerUserId == campaignOwnerId, ct);
 }
 

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using RecuBackend.Api.Utils;
 
 namespace RecuBackend.Api.Services;
 
@@ -6,31 +7,8 @@ public sealed class LocalFileStorageService(IOptions<FileStorageSettings> option
 {
     private readonly FileStorageSettings _settings = options.Value;
 
-    private static readonly HashSet<string> ImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "image/jpeg", "image/png", "image/webp"
-    };
-
-    public void ValidateUpload(string fileName, string contentType, long sizeBytes)
-    {
-        if (sizeBytes <= 0)
-            throw new ArgumentException("El archivo está vacío.");
-
-        if (sizeBytes > _settings.MaxFileSizeBytes)
-            throw new ArgumentException($"El archivo supera el máximo de {_settings.MaxFileSizeBytes / (1024 * 1024)} MB.");
-
-        var ext = Path.GetExtension(fileName);
-        if (string.IsNullOrWhiteSpace(ext) || !_settings.AllowedExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase))
-            throw new ArgumentException($"Extensión no permitida. Permitidas: {string.Join(", ", _settings.AllowedExtensions)}.");
-
-        if (string.IsNullOrWhiteSpace(contentType))
-            throw new ArgumentException("Content-Type requerido.");
-
-        var isPdf = ext.Equals(".pdf", StringComparison.OrdinalIgnoreCase);
-        var isImage = ImageContentTypes.Contains(contentType);
-        if (!isPdf && !isImage)
-            throw new ArgumentException("Solo se permiten imágenes (jpeg, png, webp) o PDF.");
-    }
+    public void ValidateUpload(string fileName, string contentType, long sizeBytes) =>
+        FileValidationHelper.ValidateUpload(_settings, fileName, contentType, sizeBytes);
 
     public async Task<string> SaveAsync(Stream content, string relativePath, CancellationToken ct = default)
     {
@@ -72,5 +50,5 @@ public sealed class LocalFileStorageService(IOptions<FileStorageSettings> option
     }
 
     public static bool IsImageContentType(string contentType) =>
-        ImageContentTypes.Contains(contentType);
+        FileValidationHelper.IsImageContentType(contentType);
 }

@@ -31,5 +31,19 @@ public interface ICharacterRepository
         string? sortBy,
         string? sortDir,
         CancellationToken ct);
+
+    Task<List<Character>> ListAllInOwnedCampaignAsync(
+        Guid campaignId,
+        Guid campaignOwnerId,
+        string? name,
+        string? race,
+        string? characterClass,
+        bool? isNpc,
+        string? sortBy,
+        string? sortDir,
+        CancellationToken ct);
+
+    Task<Character?> GetByIdInOwnedCampaignAsync(Guid campaignId, Guid id, Guid campaignOwnerId, CancellationToken ct);
+    Task<Character?> GetTrackedByIdInOwnedCampaignAsync(Guid campaignId, Guid id, Guid campaignOwnerId, CancellationToken ct);
 }
 

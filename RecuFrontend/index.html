@@ -61,6 +61,21 @@
             <span class="field__label">Contraseña</span>
             <input name="password" autocomplete="current-password" type="password" placeholder="••••••••" required />
           </label>
+          <fieldset class="role-picker" id="login-role-picker">
+            <legend class="field__label">Entrar como</legend>
+            <div class="role-picker__options">
+              <label class="role-picker__option">
+                <input type="radio" name="sessionRole" value="Master" checked />
+                <span>🎲 Dungeon Master</span>
+                <small>Crear campañas y personajes</small>
+              </label>
+              <label class="role-picker__option">
+                <input type="radio" name="sessionRole" value="User" />
+                <span>⚔ Jugador</span>
+                <small>Personajes en campañas públicas</small>
+              </label>
+            </div>
+          </fieldset>
           <button class="btn btn--primary btn--block btn--lg" type="submit">Entrar</button>
         </form>
 
@@ -77,6 +92,19 @@
             <span class="field__label">Contraseña</span>
             <input name="password" autocomplete="new-password" type="password" placeholder="mínimo 6 caracteres" required />
           </label>
+          <fieldset class="role-picker">
+            <legend class="field__label">Empezar como</legend>
+            <div class="role-picker__options">
+              <label class="role-picker__option">
+                <input type="radio" name="sessionRole" value="Master" />
+                <span>🎲 Dungeon Master</span>
+              </label>
+              <label class="role-picker__option">
+                <input type="radio" name="sessionRole" value="User" checked />
+                <span>⚔ Jugador</span>
+              </label>
+            </div>
+          </fieldset>
           <button class="btn btn--primary btn--block btn--lg" type="submit">Crear cuenta</button>
         </form>
 
@@ -116,8 +144,15 @@
               </form>
             </div>
 
+            <div class="sidebar__section hidden" id="player-explore-section">
+              <div class="sidebar__title">🌍 Campañas públicas</div>
+              <p class="muted" style="font-size:.85rem;margin:0 0 .65rem">Únete creando tu personaje en una campaña activa.</p>
+              <div id="explore-loading" class="spinner hidden"></div>
+              <ul id="explore-list" class="entity-list"></ul>
+            </div>
+
             <div class="sidebar__section">
-              <div class="sidebar__title">🔍 Filtrar</div>
+              <div class="sidebar__title" id="campaign-list-title">🔍 Mis campañas</div>
               <form id="campaign-filters" class="form form--compact">
                 <label class="field">
                   <span class="field__label">Buscar</span>
@@ -193,6 +228,10 @@
                   <button type="button" id="btn-cancel-campaign-edit" class="btn btn--ghost">Cancelar</button>
                 </div>
               </form>
+
+              <div id="player-join-hint" class="notice hidden" style="margin-bottom:1rem">
+                Estás en una <strong>campaña pública</strong>. Despliega <em>➕ Añadir personaje</em> y crea tu ficha para unirte a la partida.
+              </div>
 
               <hr class="divider" />
 
@@ -359,7 +398,7 @@
                 <div class="upload-zone">
                   <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp,.pdf" />
                   <button type="button" id="btn-upload" class="btn btn--primary">⬆ Subir archivo</button>
-                  <span class="muted">Máx. 10 MB &nbsp;·&nbsp; JPG, PNG, WebP, PDF</span>
+                  <span class="muted">Máx. 10 MB &nbsp;·&nbsp; JPG, PNG, WebP, PDF &nbsp;·&nbsp; Ejemplo: <code>samples/ficha-ejemplo.pdf</code></span>
                 </div>
                 <ul id="attachment-list" class="entity-list"></ul>
               </div>

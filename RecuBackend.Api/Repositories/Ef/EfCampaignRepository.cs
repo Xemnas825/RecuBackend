@@ -61,5 +61,36 @@ public sealed class EfCampaignRepository(AppDbContext db) : ICampaignRepository
             .AsNoTracking()
             .OrderByDescending(c => c.UpdatedAtUtc)
             .ToListAsync(ct);
+
+    public Task<List<Campaign>> ListJoinedByUserAsync(
+        Guid userId,
+        string? search,
+        string? setting,
+        string? sortBy,
+        string? sortDir,
+        CancellationToken ct) =>
+        db.Campaigns
+            .AsNoTracking()
+            .Where(c => db.Characters.Any(ch => ch.CampaignId == c.Id && ch.OwnerUserId == userId))
+            .ApplyCampaignFilters(search, setting, isActive: null, isPublic: null)
+            .ApplyCampaignSort(sortBy, sortDir)
+            .ToListAsync(ct);
+
+    public async Task<Campaign?> GetAccessibleForPlayerAsync(Guid campaignId, Guid userId, CancellationToken ct)
+    {
+        var campaign = await db.Campaigns.AsNoTracking().FirstOrDefaultAsync(c => c.Id == campaignId, ct);
+        if (campaign is null) return null;
+
+        if (campaign.IsPublic && campaign.IsActive)
+            return campaign;
+
+        var hasCharacter = await db.Characters.AnyAsync(
+            ch => ch.CampaignId == campaignId && ch.OwnerUserId == userId, ct);
+
+        return hasCharacter ? campaign : null;
+    }
+
+    public Task<bool> IsPublicActiveAsync(Guid campaignId, CancellationToken ct) =>
+        db.Campaigns.AnyAsync(c => c.Id == campaignId && c.IsPublic && c.IsActive, ct);
 }
 

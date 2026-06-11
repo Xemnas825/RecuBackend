@@ -75,6 +75,8 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.FileName).HasMaxLength(255);
             e.Property(x => x.ContentType).HasMaxLength(120);
             e.Property(x => x.StoragePath).HasMaxLength(500);
+            e.Property(x => x.PublicId).HasMaxLength(255);
+            e.Property(x => x.ResourceType).HasMaxLength(20);
             e.HasIndex(x => x.OwnerUserId);
             e.HasOne(x => x.Character)
                 .WithMany(c => c.Attachments)

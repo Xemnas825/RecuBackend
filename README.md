@@ -65,17 +65,20 @@ Respuesta: `accessToken`, `userId`, `username`, `role`, `expiresAtUtc`.
 
 Usuarios de demo (seed automático):
 
-| Usuario | Contraseña | Rol   | UserId |
-|---------|------------|-------|--------|
-| `admin` | `Admin123!` | Admin | `11111111-1111-1111-1111-111111111111` |
-| `player` | `Player123!` | User | `22222222-2222-2222-2222-222222222222` |
+| Usuario | Contraseña | Cuenta | UserId |
+|---------|------------|--------|--------|
+| `admin` | `Admin123!` | Administrador (único) | `11111111-1111-1111-1111-111111111111` |
+| `player` | `Player123!` | Usuario normal | `22222222-2222-2222-2222-222222222222` |
+
+Al iniciar sesión (excepto `admin`) eliges **Dungeon Master** o **Jugador** para esa sesión.
 
 En Swagger: botón **Authorize** → `Bearer {token}`.
 
-### Roles
+### Roles de sesión
 - **Guest** (sin token): solo endpoints `/api/public/*`
-- **User**: CRUD de sus campañas, personajes, tiradas y adjuntos
-- **Admin**: lo anterior + `/api/admin/campaigns` y `/api/admin/users`
+- **Master** (DM, elegido al login): crear campañas y gestionar todos los personajes de sus campañas
+- **User / Jugador** (elegido al login): crear y gestionar solo sus personajes en campañas **públicas y activas**
+- **Admin** (cuenta `admin`): gestión de usuarios y moderación global (`/api/admin/*`)
 
 ## Endpoints principales
 

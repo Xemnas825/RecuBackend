@@ -5,7 +5,8 @@ namespace RecuBackend.Api.Services.Domain.Interfaces;
 public interface ICampaignService
 {
     Task<List<CampaignResponse>> ListAsync(
-        Guid ownerId,
+        Guid userId,
+        bool isMaster,
         string? search,
         string? setting,
         bool? isActive,
@@ -14,7 +15,14 @@ public interface ICampaignService
         string? sortDir,
         CancellationToken ct);
 
-    Task<CampaignResponse?> GetByIdAsync(Guid id, Guid ownerId, CancellationToken ct);
+    Task<List<CampaignResponse>> ExplorePublicAsync(
+        string? search,
+        string? setting,
+        string? sortBy,
+        string? sortDir,
+        CancellationToken ct);
+
+    Task<CampaignResponse?> GetByIdAsync(Guid id, Guid userId, bool isMaster, CancellationToken ct);
 
     Task<CampaignResponse> CreateAsync(Guid ownerId, CreateCampaignRequest request, CancellationToken ct);
 
@@ -22,4 +30,3 @@ public interface ICampaignService
 
     Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken ct);
 }
-

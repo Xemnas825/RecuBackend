@@ -11,10 +11,6 @@ namespace RecuBackend.Api.Controllers;
 [Route("api/campaigns")]
 public sealed class CampaignsController(ICampaignService campaigns, IUserContext userContext) : ApiControllerBase
 {
-    /// <summary>
-    /// Filtros: search (name/setting/description), setting, isActive, isPublic.
-    /// Orden: sortBy=name|setting|createdAt|updatedAt, sortDir=asc|desc.
-    /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CampaignResponse>>> GetAll(
         [FromQuery] string? search,
@@ -25,18 +21,31 @@ public sealed class CampaignsController(ICampaignService campaigns, IUserContext
         [FromQuery] string? sortDir,
         CancellationToken ct)
     {
-        if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
+        if (!TryGetUserId(userContext, out var userId, out var authError)) return authError;
 
-        var items = await campaigns.ListAsync(ownerId, search, setting, isActive, isPublic, sortBy, sortDir, ct);
+        var items = await campaigns.ListAsync(
+            userId, userContext.IsMaster, search, setting, isActive, isPublic, sortBy, sortDir, ct);
+        return Ok(items);
+    }
+
+    [HttpGet("explore")]
+    public async Task<ActionResult<IEnumerable<CampaignResponse>>> ExplorePublic(
+        [FromQuery] string? search,
+        [FromQuery] string? setting,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortDir,
+        CancellationToken ct)
+    {
+        var items = await campaigns.ExplorePublicAsync(search, setting, sortBy, sortDir, ct);
         return Ok(items);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CampaignResponse>> GetById(Guid id, CancellationToken ct)
     {
-        if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
+        if (!TryGetUserId(userContext, out var userId, out var authError)) return authError;
 
-        var campaign = await campaigns.GetByIdAsync(id, ownerId, ct);
+        var campaign = await campaigns.GetByIdAsync(id, userId, userContext.IsMaster, ct);
         return campaign is null ? NotFound() : Ok(campaign);
     }
 

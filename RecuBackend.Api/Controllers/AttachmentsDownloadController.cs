@@ -17,9 +17,12 @@ public sealed class AttachmentsDownloadController(
     {
         if (!TryGetUserId(userContext, out var ownerId, out var authError)) return authError;
 
-        var (stream, fileName, contentType, notFound, error) = await downloads.OpenAsync(id, ownerId, ct);
+        var (stream, redirectUrl, fileName, contentType, notFound, error) = await downloads.OpenAsync(id, ownerId, ct);
         if (notFound)
             return error is null ? NotFound() : NotFound(new { message = error });
+
+        if (!string.IsNullOrWhiteSpace(redirectUrl))
+            return Redirect(redirectUrl);
 
         return File(stream!, contentType, fileName);
     }
