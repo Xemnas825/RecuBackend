@@ -1,105 +1,242 @@
-# RecuBackend – DnD NPC Manager API
+# RecuBackend – DnD Campaign Manager
 
-API RESTful en **.NET 8** para gestionar campañas de rol (DnD), personajes/NPCs, tiradas de dados y fichas de personaje con imágenes.
+API REST en **.NET 8** con frontend web para gestionar campañas de rol (D&D 5e): personajes, NPCs, tiradas de dados, compendio D&D y fichas de personaje (PDF/imágenes) alojadas en **Cloudinary**.
+
+## Contenido del repositorio
+
+| Componente | Descripción |
+|------------|-------------|
+| `RecuBackend.Api/` | API REST, autenticación JWT, EF Core + PostgreSQL |
+| `RecuFrontend/` | Interfaz web (HTML/CSS/JS) servida con nginx |
+| `RecuBackend.Tests/` | Tests unitarios |
+| `samples/` | Fichas de ejemplo y guía de formatos (`FORMATO-FICHAS.md`) |
+| `postman/` | Colección Postman |
 
 ## Requisitos
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8) (desarrollo local)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (recomendado)
+- Cuenta gratuita en [Cloudinary](https://cloudinary.com/console) (subida de fichas)
+
+---
 
 ## Inicio rápido con Docker
 
 ```bash
-# Copia el fichero de entorno y ajusta los puertos según tu usuario de San Valero
 cp .env.example .env
+# Edita .env: puertos, JWT_SECRET y credenciales Cloudinary
 
-# Levanta API + PostgreSQL
 docker compose --env-file .env up --build -d
 ```
 
-La API estará disponible en `http://localhost:<API_PORT>/swagger` y la **web** en `http://localhost:<WEB_PORT>` (por defecto 3000).
+| Servicio | URL |
+|----------|-----|
+| **Web** | `http://localhost:<WEB_PORT>` (por defecto `3000`) |
+| **API / Swagger** | `http://localhost:<API_PORT>/swagger` (por defecto `4569`) |
+| **PostgreSQL** | `localhost:<DB_PORT>` (por defecto `9654`) |
 
-Colección Postman: `postman/RecuBackend.postman_collection.json`  
-Documentación de entrega: `ENTREGA.md`
+---
 
-### Variables de entorno (`.env`)
+## Variables de entorno (`.env`)
 
-| Variable          | Descripción                                   | Ejemplo  |
-|-------------------|-----------------------------------------------|----------|
-| `API_PORT`        | Puerto de la API (4 últimas cifras usuario)   | `4569`   |
-| `DB_PORT`         | Puerto de PostgreSQL (cifras invertidas)      | `9654`   |
-| `POSTGRES_DB`     | Nombre de la base de datos                    | `recubackend` |
-| `POSTGRES_USER`   | Usuario de PostgreSQL                         | `postgres`    |
-| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL                    | `postgres`    |
-| `JWT_SECRET`        | Clave secreta para firmar tokens JWT          | (mín. 32 chars) |
-| `WEB_PORT`          | Puerto del front web                          | `3000`   |
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `API_PORT` | Puerto de la API | `4569` |
+| `DB_PORT` | Puerto de PostgreSQL | `9654` |
+| `WEB_PORT` | Puerto del frontend | `3000` |
+| `POSTGRES_DB` | Nombre de la base de datos | `recubackend` |
+| `POSTGRES_USER` | Usuario PostgreSQL | `postgres` |
+| `POSTGRES_PASSWORD` | Contraseña PostgreSQL | `postgres` |
+| `JWT_SECRET` | Clave para firmar JWT (mín. 32 caracteres) | — |
+| `CLOUDINARY_CLOUD_NAME` | Cloud name del dashboard Cloudinary | `dxxxxxx` |
+| `CLOUDINARY_API_KEY` | API Key de Cloudinary | — |
+| `CLOUDINARY_API_SECRET` | API Secret de Cloudinary | — |
 
-## Desarrollo local (sin Docker)
+> **No subas el `.env` a Git.** Copia las tres variables de Cloudinary desde [cloudinary.com/console](https://cloudinary.com/console) → Dashboard.
+
+Tras cambiar `.env`, reinicia la API:
 
 ```bash
-# Asegúrate de tener PostgreSQL corriendo en localhost:5432
+docker compose --env-file .env up --build -d
+```
+
+### Desarrollo local (sin Docker)
+
+1. PostgreSQL en `localhost:5432`.
+2. Configura `CloudinarySettings` en `RecuBackend.Api/appsettings.json` o variables de entorno.
+3. Ejecuta:
+
+```bash
 dotnet run --project RecuBackend.Api
 ```
 
-## Autenticación JWT
+---
 
-### Registro
-```http
-POST /api/auth/register
-Content-Type: application/json
+## Autenticación
 
-{ "username": "julio", "password": "Test123!", "displayName": "Julio" }
-```
+### Login con rol de sesión
 
-Crea un usuario con rol **User** y devuelve el JWT (igual que el login).
+Al iniciar sesión (excepto la cuenta `admin`) eliges **Dungeon Master** o **Jugador**. Ese rol va en el JWT y define los permisos de la sesión.
 
-### Login
 ```http
 POST /api/auth/login
 Content-Type: application/json
 
-{ "username": "player", "password": "Player123!" }
+{
+  "username": "player",
+  "password": "Player123!",
+  "sessionRole": "User"
+}
 ```
 
-Respuesta: `accessToken`, `userId`, `username`, `role`, `expiresAtUtc`.
+`sessionRole`: `"Master"` (DM) o `"User"` (Jugador). La cuenta `admin` siempre recibe rol **Admin** (ignora `sessionRole`).
 
-Usuarios de demo (seed automático):
+### Registro
 
-| Usuario | Contraseña | Cuenta | UserId |
-|---------|------------|--------|--------|
-| `admin` | `Admin123!` | Administrador (único) | `11111111-1111-1111-1111-111111111111` |
-| `player` | `Player123!` | Usuario normal | `22222222-2222-2222-2222-222222222222` |
+```http
+POST /api/auth/register
+Content-Type: application/json
 
-Al iniciar sesión (excepto `admin`) eliges **Dungeon Master** o **Jugador** para esa sesión.
+{
+  "username": "julio",
+  "password": "Test123!",
+  "displayName": "Julio",
+  "sessionRole": "User"
+}
+```
 
-En Swagger: botón **Authorize** → `Bearer {token}`.
+### Respuesta de login / registro
 
-### Roles de sesión
-- **Guest** (sin token): solo endpoints `/api/public/*`
-- **Master** (DM, elegido al login): crear campañas y gestionar todos los personajes de sus campañas
-- **User / Jugador** (elegido al login): crear y gestionar solo sus personajes en campañas **públicas y activas**
-- **Admin** (cuenta `admin`): gestión de usuarios y moderación global (`/api/admin/*`)
+```json
+{
+  "accessToken": "...",
+  "userId": "...",
+  "username": "player",
+  "role": "User",
+  "isAdmin": false,
+  "isMaster": false,
+  "expiresAtUtc": "..."
+}
+```
 
-## Endpoints principales
+### Consultar sesión actual
+
+```http
+GET /api/auth/me
+Authorization: Bearer {token}
+```
+
+En Swagger: **Authorize** → `Bearer {token}`.
+
+### Usuarios de demo (seed automático)
+
+| Usuario | Contraseña | Cuenta |
+|---------|------------|--------|
+| `admin` | `Admin123!` | Administrador del sistema (único) |
+| `player` | `Player123!` | Usuario normal (elige DM o Jugador al login) |
+
+---
+
+## Roles y permisos
+
+| Rol | Cómo se obtiene | Permisos |
+|-----|-----------------|----------|
+| **Guest** | Sin token | Solo `/api/public/*` |
+| **Master** (DM) | `sessionRole: "Master"` al login | Crear/editar/borrar **sus campañas**; gestionar **todos** los personajes de esas campañas (incl. NPCs) |
+| **User** (Jugador) | `sessionRole: "User"` al login | Ver campañas públicas; crear/editar/borrar **solo sus personajes** en campañas **públicas y activas** |
+| **Admin** | Cuenta `admin` | Panel de administración: usuarios, moderación de campañas (pública/activa) |
+
+### Flujos típicos
+
+**Dungeon Master**
+1. Login → Dungeon Master.
+2. Crear campaña (marcar **Pública** si quieres que se unan jugadores).
+3. Añadir personajes y NPCs.
+
+**Jugador**
+1. Login → Jugador.
+2. En **Mis campañas** → **Campañas públicas** (o pestaña Explorar público).
+3. Elegir campaña → **Añadir personaje** → crear ficha.
+
+**Administrador**
+1. Login con `admin`.
+2. Panel ⚙ Admin: usuarios (roles, desactivar) y estado de campañas (pública/activa).
+
+---
+
+## Subida de fichas (Cloudinary)
+
+Los archivos **no** se guardan en disco del servidor. La API sube a Cloudinary y guarda la URL en base de datos.
+
+| Tipo | Extensiones | Máx. |
+|------|-------------|------|
+| Imagen | `.jpg`, `.jpeg`, `.png`, `.webp` | 10 MB |
+| PDF | `.pdf` | 10 MB |
+
+```http
+POST /api/characters/{characterId}/attachments
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+file: (archivo)
+```
+
+Ejemplo de prueba: `samples/ficha-ejemplo.pdf`  
+Documentación detallada: [`samples/FORMATO-FICHAS.md`](samples/FORMATO-FICHAS.md)
+
+Sin Cloudinary configurado, la subida devuelve error indicando que faltan credenciales.
+
+---
+
+## Endpoints de la API
+
+### Autenticación
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
-| POST | `/api/auth/register` | No | Registrar usuario y obtener JWT |
+| POST | `/api/auth/register` | No | Registrar usuario |
 | POST | `/api/auth/login` | No | Obtener JWT |
-| GET | `/api/public/campaigns` | No | Campañas públicas (filtros: search, setting; orden: name, updatedAt…) |
-| GET | `/api/public/dnd/spells?name=` | No | Hechizo desde dnd5eapi.co |
-| GET | `/api/public/dnd/monsters?name=` | No | Monstruo desde dnd5eapi.co |
-| GET/POST/PUT/DELETE | `/api/campaigns` | User/Admin | CRUD de campañas propias |
-| GET/POST/PUT/DELETE | `/api/campaigns/{id}/characters` | User/Admin | CRUD de personajes/NPC |
-| GET/POST | `/api/characters/{id}/rolls` | User/Admin | Historial y tirada de dados |
-| POST | `/api/characters/{id}/attachments` | User/Admin | Subir ficha (multipart, campo `file`) |
-| GET | `/api/characters/{id}/attachments` | User/Admin | Listar fichas del personaje |
-| GET | `/api/attachments/{id}` | User/Admin | Descargar ficha |
-| DELETE | `/api/characters/{id}/attachments/{attachmentId}` | User/Admin | Borrar ficha |
-| GET | `/api/admin/campaigns` | Admin | Todas las campañas |
-| GET | `/api/admin/users` | Admin | Listado de usuarios |
+| GET | `/api/auth/me` | Sí | Rol y datos de la sesión actual |
 
-### Ejemplo de tirada
+### Público (sin token)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/public/campaigns` | Campañas públicas activas |
+| GET | `/api/public/campaigns/{id}/characters` | Personajes visibles de una campaña pública |
+| GET | `/api/public/dnd/spells?name=` | Hechizo (dnd5eapi.co) |
+| GET | `/api/public/dnd/monsters?name=` | Monstruo (dnd5eapi.co) |
+
+### Campañas
+
+| Método | Ruta | Rol | Descripción |
+|--------|------|-----|-------------|
+| GET | `/api/campaigns` | Auth | DM: sus campañas · Jugador: campañas donde tiene personajes |
+| GET | `/api/campaigns/explore` | Auth | Campañas públicas activas (para unirse) |
+| GET | `/api/campaigns/{id}` | Auth | Detalle (según permisos) |
+| POST | `/api/campaigns` | Master | Crear campaña |
+| PUT | `/api/campaigns/{id}` | Master | Actualizar campaña propia |
+| DELETE | `/api/campaigns/{id}` | Master | Borrar campaña propia |
+
+### Personajes
+
+| Método | Ruta | Rol | Descripción |
+|--------|------|-----|-------------|
+| GET | `/api/campaigns/{id}/characters` | Auth | Listar personajes (DM: todos · Jugador: solo los suyos) |
+| GET | `/api/campaigns/{id}/characters/{charId}` | Auth | Detalle |
+| POST | `/api/campaigns/{id}/characters` | Auth | Crear (DM en su campaña · Jugador en pública activa) |
+| PUT | `/api/campaigns/{id}/characters/{charId}` | Auth | Actualizar |
+| DELETE | `/api/campaigns/{id}/characters/{charId}` | Auth | Borrar |
+
+### Tiradas de dados
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/api/characters/{id}/rolls` | Auth | Historial |
+| POST | `/api/characters/{id}/rolls` | Auth | Nueva tirada |
+
+Ejemplo:
+
 ```http
 POST /api/characters/{characterId}/rolls
 Authorization: Bearer {token}
@@ -111,28 +248,59 @@ Content-Type: application/json
   "d20Mode": 1
 }
 ```
-`d20Mode`: `0` Normal, `1` Ventaja, `2` Desventaja.
 
-### Subir ficha de personaje (imagen o PDF)
-En Swagger: `POST /api/characters/{characterId}/attachments` → **Try it out** → campo `file`.
+`d20Mode`: `0` Normal · `1` Ventaja · `2` Desventaja.
 
-Formatos permitidos: `.jpg`, `.jpeg`, `.png`, `.webp`, `.pdf` (máx. 10 MB).
+### Adjuntos / fichas
 
-Los archivos se guardan en volumen Docker (`/app/uploads`) y persisten al reiniciar contenedores.
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/api/characters/{id}/attachments` | Auth | Listar fichas |
+| POST | `/api/characters/{id}/attachments` | Auth | Subir (multipart, campo `file`) |
+| DELETE | `/api/characters/{id}/attachments/{attachmentId}` | Auth | Borrar |
+| GET | `/api/attachments/{id}` | Auth | Descargar / redirigir a Cloudinary |
+
+### Administración (solo Admin)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/admin/campaigns` | Todas las campañas |
+| GET | `/api/admin/users` | Todos los usuarios |
+| DELETE | `/api/admin/users/{id}` | Desactivar usuario |
+| PATCH | `/api/admin/users/{id}/role` | Cambiar rol (`User`, `Master`, `Admin`) |
+| PATCH | `/api/admin/campaigns/{id}/status` | Cambiar `isPublic` / `isActive` |
+
+---
 
 ## Estructura del proyecto
 
 ```
 RecuBackend/
 ├── RecuBackend.Api/
-│   ├── Controllers/        # Controladores HTTP
-│   ├── Data/               # DbContext y Migrations
-│   ├── Models/             # Entidades
-│   ├── Services/           # Lógica de negocio
-│   ├── Dtos/               # Objetos de transferencia
-│   ├── Dockerfile
+│   ├── Auth/               # Roles JWT, resolución de sesión
+│   ├── Cloudinary/         # Subida y borrado en Cloudinary
+│   ├── Controllers/
+│   ├── Data/               # DbContext, migrations, seeder
+│   ├── Dtos/
+│   ├── Models/
+│   ├── Repositories/
+│   ├── Services/
 │   └── Program.cs
+├── RecuFrontend/           # Web (nginx en Docker)
+├── RecuBackend.Tests/
+├── samples/                # PDF/HTML de ejemplo para fichas
+├── postman/
 ├── docker-compose.yml
 ├── .env.example
 └── RecuBackend.sln
 ```
+
+## Tests
+
+```bash
+dotnet test RecuBackend.sln
+```
+
+## Colección Postman
+
+`postman/RecuBackend.postman_collection.json`
