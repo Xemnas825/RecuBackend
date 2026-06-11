@@ -33,6 +33,9 @@ public sealed class EfCampaignRepository(AppDbContext db) : ICampaignRepository
     public Task<Campaign?> GetTrackedByIdAsync(Guid id, Guid ownerId, CancellationToken ct) =>
         db.Campaigns.FirstOrDefaultAsync(c => c.Id == id && c.OwnerUserId == ownerId, ct);
 
+    public Task<Campaign?> GetTrackedByIdAsync(Guid id, CancellationToken ct) =>
+        db.Campaigns.FirstOrDefaultAsync(c => c.Id == id, ct);
+
     public Task<bool> ExistsForOwnerAsync(Guid id, Guid ownerId, CancellationToken ct) =>
         db.Campaigns.AnyAsync(c => c.Id == id && c.OwnerUserId == ownerId, ct);
 

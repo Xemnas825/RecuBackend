@@ -15,7 +15,7 @@ public sealed class AuthService(IUserRepository users, TokenService tokenService
             return (null, "Usuario o contraseña incorrectos.", StatusCodes.Status401Unauthorized);
 
         var (token, expires) = tokenService.CreateToken(user);
-        return (new LoginResponse(token, user.Id, user.Username, user.Role, expires), null, StatusCodes.Status200OK);
+        return (BuildLoginResponse(token, user, expires), null, StatusCodes.Status200OK);
     }
 
     public async Task<(LoginResponse? Response, string? ErrorMessage, int StatusCode)> RegisterAsync(RegisterRequest request, CancellationToken ct)
@@ -51,7 +51,10 @@ public sealed class AuthService(IUserRepository users, TokenService tokenService
         await users.SaveChangesAsync(ct);
 
         var (token, expires) = tokenService.CreateToken(user);
-        return (new LoginResponse(token, user.Id, user.Username, user.Role, expires), null, StatusCodes.Status200OK);
+        return (BuildLoginResponse(token, user, expires), null, StatusCodes.Status200OK);
     }
+
+    private static LoginResponse BuildLoginResponse(string token, AppUser user, DateTime expires) =>
+        new(token, user.Id, user.Username, user.Role, AppRoles.IsAdmin(user.Role), AppRoles.IsMaster(user.Role), expires);
 }
 

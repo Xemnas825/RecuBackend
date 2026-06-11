@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using RecuBackend.Api.Auth;
 
 namespace RecuBackend.Api.Services;
 
@@ -17,6 +18,10 @@ public sealed class UserContextAccessor(IHttpContextAccessor httpContextAccessor
         httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role);
 
     public bool IsAuthenticated => UserId.HasValue;
+
+    public bool IsAdmin => AppRoles.IsAdmin(Role);
+
+    public bool IsMaster => AppRoles.IsMaster(Role);
 
     public bool IsInRole(string role) =>
         string.Equals(Role, role, StringComparison.OrdinalIgnoreCase);

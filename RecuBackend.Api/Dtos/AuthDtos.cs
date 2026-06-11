@@ -12,4 +12,6 @@ public sealed record LoginResponse(
     Guid UserId,
     string Username,
     string Role,
+    bool IsAdmin,
+    bool IsMaster,
     DateTime ExpiresAtUtc);

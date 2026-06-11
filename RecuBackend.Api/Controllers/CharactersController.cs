@@ -40,6 +40,7 @@ public sealed class CharactersController(ICharacterService characters, IUserCont
         return character is null ? NotFound() : Ok(character);
     }
 
+    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpPost]
     public async Task<ActionResult<CharacterResponse>> Create(
         Guid campaignId, CreateCharacterRequest request, CancellationToken ct)
@@ -50,6 +51,7 @@ public sealed class CharactersController(ICharacterService characters, IUserCont
         return CreatedAtRoute("GetCharacter", new { campaignId, id = created.Id }, created);
     }
 
+    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<CharacterResponse>> Update(
         Guid campaignId, Guid id, UpdateCharacterRequest request, CancellationToken ct)
@@ -60,6 +62,7 @@ public sealed class CharactersController(ICharacterService characters, IUserCont
         return updated is null ? NotFound() : Ok(updated);
     }
 
+    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid campaignId, Guid id, CancellationToken ct)
     {

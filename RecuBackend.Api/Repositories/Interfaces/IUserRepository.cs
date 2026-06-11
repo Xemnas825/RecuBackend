@@ -10,5 +10,6 @@ public interface IUserRepository
     Task<int> SaveChangesAsync(CancellationToken ct);
 
     Task<List<AppUser>> ListAllAsync(CancellationToken ct);
+    Task<AppUser?> FindByIdAsync(Guid id, CancellationToken ct);
 }
 

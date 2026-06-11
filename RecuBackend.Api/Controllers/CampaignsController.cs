@@ -40,6 +40,7 @@ public sealed class CampaignsController(ICampaignService campaigns, IUserContext
         return campaign is null ? NotFound() : Ok(campaign);
     }
 
+    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpPost]
     public async Task<ActionResult<CampaignResponse>> Create(CreateCampaignRequest request, CancellationToken ct)
     {
@@ -49,6 +50,7 @@ public sealed class CampaignsController(ICampaignService campaigns, IUserContext
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
+    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<CampaignResponse>> Update(Guid id, UpdateCampaignRequest request, CancellationToken ct)
     {
@@ -58,6 +60,7 @@ public sealed class CampaignsController(ICampaignService campaigns, IUserContext
         return updated is null ? NotFound() : Ok(updated);
     }
 
+    [Authorize(Roles = AppRoles.GameManagement)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

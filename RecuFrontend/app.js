@@ -79,18 +79,58 @@ function buildQuery(params) {
 
 // ─── Auth & shell ───────────────────────────────────────────
 
+const ROLE_LABELS = {
+  Admin: 'Administrador',
+  Master: 'Dungeon Master',
+  User: 'Jugador',
+};
+
+function isAdmin() {
+  return state.user?.isAdmin === true || state.user?.role === 'Admin';
+}
+
+function isMaster() {
+  return state.user?.isMaster === true || state.user?.role === 'Master';
+}
+
+function canManageGame() {
+  return isMaster();
+}
+
+function roleLabel(role) {
+  return ROLE_LABELS[role] || role || '—';
+}
+
+function roleBadgeHtml() {
+  if (!state.user) return '';
+  const role = state.user.role;
+  const label = roleLabel(role);
+  const cls = isAdmin() ? 'badge--admin' : isMaster() ? 'badge--master' : 'badge--inactive';
+  return `<span class="badge ${cls}">${esc(label)}</span>`;
+}
+
+function applyRolePermissions() {
+  const master = canManageGame();
+  show($('campaign-create-section'), master);
+  show($('btn-edit-campaign'), master);
+  show($('btn-delete-campaign'), master);
+  show($('character-form'), master);
+  show($('btn-edit-character'), master);
+  show($('btn-delete-character'), master);
+}
+
 function showApp(loggedIn) {
   show($('auth-section'), !loggedIn);
   show($('app-section'), loggedIn);
   show($('btn-logout'), loggedIn);
   show($('main-nav'), loggedIn);
   if (loggedIn && state.user) {
-    const role = state.user.role;
-    setHtml($('user-info'), `<strong>${state.user.username}</strong> · ${role}`);
-    const isAdmin = role === 'Admin';
-    show($('nav-admin'), isAdmin);
-    if (isAdmin) $('nav-admin').classList.remove('hidden');
+    setHtml($('user-info'), `<strong>${esc(state.user.username)}</strong> ${roleBadgeHtml()}`);
+    const admin = isAdmin();
+    show($('nav-admin'), admin);
+    if (admin) $('nav-admin').classList.remove('hidden');
     else $('nav-admin')?.classList.add('hidden');
+    applyRolePermissions();
     switchView(state.view || 'campaigns');
     if (state.view === 'campaigns' || !state.view) loadCampaigns();
   }
@@ -114,10 +154,33 @@ async function register(username, password, displayName) {
 
 function saveSession(data) {
   state.token = data.accessToken;
-  state.user = { username: data.username, role: data.role, userId: data.userId };
+  state.user = {
+    username: data.username,
+    role: data.role,
+    userId: data.userId,
+    isAdmin: data.isAdmin ?? data.role === 'Admin',
+    isMaster: data.isMaster ?? data.role === 'Master',
+  };
   localStorage.setItem('token', state.token);
   localStorage.setItem('user', JSON.stringify(state.user));
   showApp(true);
+}
+
+async function refreshSession() {
+  if (!state.token) return;
+  try {
+    const me = await api('/api/auth/me');
+    state.user = {
+      ...state.user,
+      role: me.role,
+      isAdmin: me.isAdmin,
+      isMaster: me.isMaster,
+    };
+    localStorage.setItem('user', JSON.stringify(state.user));
+    showApp(true);
+  } catch {
+    logout();
+  }
 }
 
 function logout() {
@@ -143,7 +206,7 @@ function switchView(view) {
 
   if (view === 'campaigns') loadCampaigns();
   if (view === 'public') loadPublicCampaigns();
-  if (view === 'admin' && state.user?.role === 'Admin') loadAdmin();
+  if (view === 'admin' && isAdmin()) loadAdmin();
 }
 
 // ─── Modal ──────────────────────────────────────────────────
@@ -672,9 +735,51 @@ function renderMonster(monster) {
 // ─── Admin ────────────────────────────────────────────────────
 
 async function loadAdmin() {
-  if (state.user?.role !== 'Admin') return;
+  if (!isAdmin()) return;
   loadAdminCampaigns();
   loadAdminUsers();
+}
+
+async function adminDeleteUser(userId, username) {
+  const ok = await confirmModal('Desactivar usuario', `¿Desactivar la cuenta de "${username}"?`);
+  if (!ok) return;
+  try {
+    await api(`/api/admin/users/${userId}`, { method: 'DELETE' });
+    toast('Usuario desactivado');
+    loadAdminUsers();
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function adminSetUserRole(userId, username, newRole) {
+  const label = roleLabel(newRole);
+  const ok = await confirmModal('Cambiar rol', `¿Asignar rol "${label}" a "${username}"?`);
+  if (!ok) return;
+  try {
+    await api(`/api/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role: newRole }),
+    });
+    toast(`Rol actualizado a ${label}`);
+    loadAdminUsers();
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
+async function adminUpdateCampaignStatus(campaignId, isPublic, isActive) {
+  try {
+    await api(`/api/admin/campaigns/${campaignId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isPublic, isActive }),
+    });
+    toast('Campaña actualizada');
+    loadAdminCampaigns();
+  } catch (e) {
+    toast(e.message);
+    loadAdminCampaigns();
+  }
 }
 
 async function loadAdminCampaigns() {
@@ -689,16 +794,40 @@ async function loadAdminCampaigns() {
         <thead><tr><th>Nombre</th><th>Ambientación</th><th>Pública</th><th>Activa</th></tr></thead>
         <tbody>
           ${items.map((c) => `
-            <tr>
+            <tr data-campaign-id="${c.id}">
               <td>${esc(c.name)}</td>
               <td>${esc(c.setting)}</td>
-              <td>${c.isPublic ? '✓' : '—'}</td>
-              <td>${c.isActive ? '✓' : '—'}</td>
+              <td>
+                <label class="checkbox">
+                  <input type="checkbox" data-campaign-public ${c.isPublic ? 'checked' : ''} />
+                  <span>${c.isPublic ? 'Sí' : 'No'}</span>
+                </label>
+              </td>
+              <td>
+                <label class="checkbox">
+                  <input type="checkbox" data-campaign-active ${c.isActive ? 'checked' : ''} />
+                  <span>${c.isActive ? 'Sí' : 'No'}</span>
+                </label>
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+    wrap.querySelectorAll('tr[data-campaign-id]').forEach((row) => {
+      const id = row.dataset.campaignId;
+      const publicCb = row.querySelector('[data-campaign-public]');
+      const activeCb = row.querySelector('[data-campaign-active]');
+      const onChange = () => adminUpdateCampaignStatus(id, publicCb.checked, activeCb.checked);
+      publicCb.onchange = () => {
+        publicCb.nextElementSibling.textContent = publicCb.checked ? 'Sí' : 'No';
+        onChange();
+      };
+      activeCb.onchange = () => {
+        activeCb.nextElementSibling.textContent = activeCb.checked ? 'Sí' : 'No';
+        onChange();
+      };
+    });
   } catch (e) {
     wrap.innerHTML = `<p class="notice notice--error">${esc(e.message)}</p>`;
   } finally {
@@ -713,21 +842,45 @@ async function loadAdminUsers() {
   wrap.innerHTML = '';
   try {
     const items = unwrap(await api('/api/admin/users'));
+    const selfId = state.user?.userId;
     wrap.innerHTML = `
       <table class="data-table">
-        <thead><tr><th>Usuario</th><th>Rol</th><th>Nombre</th><th>Activo</th></tr></thead>
+        <thead><tr><th>Usuario</th><th>Rol</th><th>Nombre</th><th>Activo</th><th>Acciones</th></tr></thead>
         <tbody>
-          ${items.map((u) => `
+          ${items.map((u) => {
+            const isSelf = String(u.id).toLowerCase() === String(selfId || '').toLowerCase();
+            const actions = isSelf
+              ? '<span class="muted">—</span>'
+              : u.isActive
+                ? `
+                  <div class="btn-group btn-group--wrap">
+                    <button type="button" class="btn btn--ghost btn--sm" data-role="User" data-user-id="${u.id}" data-username="${escAttr(u.username)}">Jugador</button>
+                    <button type="button" class="btn btn--ghost btn--sm" data-role="Master" data-user-id="${u.id}" data-username="${escAttr(u.username)}">DM</button>
+                    <button type="button" class="btn btn--ghost btn--sm" data-role="Admin" data-user-id="${u.id}" data-username="${escAttr(u.username)}">Admin</button>
+                    <button type="button" class="btn btn--danger btn--sm" data-delete-user="${u.id}" data-username="${escAttr(u.username)}">Desactivar</button>
+                  </div>
+                `
+                : '<span class="muted">Inactivo</span>';
+            const roleCls = u.role === 'Admin' ? 'badge--admin' : u.role === 'Master' ? 'badge--master' : 'badge--inactive';
+            return `
             <tr>
               <td>${esc(u.username)}</td>
-              <td>${esc(u.role)}</td>
+              <td><span class="badge ${roleCls}">${esc(roleLabel(u.role))}</span></td>
               <td>${esc(u.displayName || '—')}</td>
               <td>${u.isActive ? '✓' : '—'}</td>
+              <td>${actions}</td>
             </tr>
-          `).join('')}
+          `;
+          }).join('')}
         </tbody>
       </table>
     `;
+    wrap.querySelectorAll('[data-role]').forEach((btn) => {
+      btn.onclick = () => adminSetUserRole(btn.dataset.userId, btn.dataset.username, btn.dataset.role);
+    });
+    wrap.querySelectorAll('[data-delete-user]').forEach((btn) => {
+      btn.onclick = () => adminDeleteUser(btn.dataset.deleteUser, btn.dataset.username);
+    });
   } catch (e) {
     wrap.innerHTML = `<p class="notice notice--error">${esc(e.message)}</p>`;
   } finally {
@@ -1095,5 +1248,5 @@ function initCharacterForms() {
 initCharacterForms();
 
 // Init
-if (state.token) showApp(true);
+if (state.token) refreshSession();
 else showApp(false);

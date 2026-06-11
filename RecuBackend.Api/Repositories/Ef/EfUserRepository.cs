@@ -19,5 +19,8 @@ public sealed class EfUserRepository(AppDbContext db) : IUserRepository
 
     public Task<List<AppUser>> ListAllAsync(CancellationToken ct) =>
         db.AppUsers.AsNoTracking().OrderBy(u => u.Username).ToListAsync(ct);
+
+    public Task<AppUser?> FindByIdAsync(Guid id, CancellationToken ct) =>
+        db.AppUsers.FirstOrDefaultAsync(u => u.Id == id, ct);
 }
 

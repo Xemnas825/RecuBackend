@@ -17,6 +17,7 @@ public interface ICampaignRepository
     Task<Campaign?> GetByIdAsync(Guid id, Guid ownerId, CancellationToken ct);
     Task<Campaign?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<Campaign?> GetTrackedByIdAsync(Guid id, Guid ownerId, CancellationToken ct);
+    Task<Campaign?> GetTrackedByIdAsync(Guid id, CancellationToken ct);
     Task<bool> ExistsForOwnerAsync(Guid id, Guid ownerId, CancellationToken ct);
 
     void Add(Campaign campaign);

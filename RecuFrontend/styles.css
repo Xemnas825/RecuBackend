@@ -570,6 +570,10 @@ input:focus, select:focus, textarea:focus {
 .badge--active   { background: var(--green-dim); color: #6ee7a0; border: 1px solid rgba(70,194,126,.25); }
 .badge--inactive { background: rgba(255,255,255,.05); color: var(--text-3); border: 1px solid var(--border); }
 .badge--npc      { background: var(--gold-dim); color: var(--gold-light); border: 1px solid var(--border-gold); }
+.badge--admin    { background: rgba(220, 80, 80, .15); color: #f0a0a0; border: 1px solid rgba(220, 80, 80, .35); }
+.badge--master   { background: var(--gold-dim); color: var(--gold-light); border: 1px solid var(--border-gold); }
+
+.btn-group--wrap { flex-wrap: wrap; gap: .25rem; }
 
 /* ─── DIVIDER / SECTION TITLE ──────────────── */
 .divider       { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
